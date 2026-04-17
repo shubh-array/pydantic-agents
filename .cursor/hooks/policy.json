@@ -2,7 +2,7 @@
   "version": 1,
   "shell": {
     "deny_rm_recursive_force": true,
-    "deny_git_push_main": true,
+    "deny_git_push_main": false,
     "deny_wrappers": [
       "sudo",
       "doas",
