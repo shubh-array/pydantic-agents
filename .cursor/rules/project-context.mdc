@@ -1,0 +1,11 @@
+---
+description: Minimal global project context
+alwaysApply: true
+---
+
+# Project Context
+
+- This project is a reusable hook framework for agentic development.
+- This project is in active development.
+- When planning and implementing, backward compatibility is not required.
+- Legacy code support is not required.
