@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "shell": {
+    "deny_rm_recursive_force": true,
+    "deny_git_push_main": true,
+    "deny_wrappers": [
+      "sudo",
+      "doas",
+      "env",
+      "command",
+      "nice",
+      "nohup",
+      "timeout"
+    ],
+    "main_ref_patterns": [
+      "main",
+      "refs/heads/main",
+      "HEAD:main",
+      ":main"
+    ]
+  }
+}

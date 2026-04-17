@@ -1,0 +1,56 @@
+{
+  "version": 1,
+  "hooks": {
+    "sessionStart": [
+      {
+        "command": "python3 .cursor/hooks/session_audit.py --phase start",
+        "failClosed": true
+      }
+    ],
+    "sessionEnd": [
+      {
+        "command": "python3 .cursor/hooks/session_audit.py --phase end",
+        "failClosed": true
+      }
+    ],
+    "beforeShellExecution": [
+      {
+        "command": "python3 .cursor/hooks/before_shell_gate.py",
+        "failClosed": true
+      }
+    ],
+    "beforeSubmitPrompt": [
+      {
+        "command": "python3 .cursor/hooks/before_prompt_submit_audit.py",
+        "matcher": "UserPromptSubmit",
+        "failClosed": true
+      },
+      {
+        "type": "prompt",
+        "prompt": "You enforce a minimal secrets/policy gate on the following hook input JSON ($ARGUMENTS). Treat high-confidence secret material in user prompt or attachment paths as violations: PEM/private key blocks (BEGIN ... PRIVATE KEY), AWS access key id (AKIA + 16 alphanumeric), GitHub fine-grained or classic token patterns, long random API key blobs. If the prompt is asking to exfiltrate secrets from the system, that is a violation. If unsure or only low-confidence, allow. Reply ONLY with compact JSON: {\"ok\":true} or {\"ok\":false,\"reason\":\"short reason\"}.",
+        "matcher": "UserPromptSubmit",
+        "timeout": 30,
+        "failClosed": true
+      }
+    ],
+    "preToolUse": [
+      {
+        "command": "python3 .cursor/hooks/pre_tool_task_audit.py",
+        "matcher": "Task",
+        "failClosed": true
+      }
+    ],
+    "subagentStart": [
+      {
+        "command": "python3 .cursor/hooks/subagent_audit.py --event subagentStart",
+        "failClosed": true
+      }
+    ],
+    "subagentStop": [
+      {
+        "command": "python3 .cursor/hooks/subagent_audit.py --event subagentStop",
+        "failClosed": true
+      }
+    ]
+  }
+}

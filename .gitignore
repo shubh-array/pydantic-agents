@@ -1,0 +1,13 @@
+.array/
+tests/hook_matrix/out/*.jsonl
+tests/hook_matrix/out/live_e2e_report.json
+docs/superpowers/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.ruff_cache/
+
+# macOS
+.DS_Store

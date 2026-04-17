@@ -1,0 +1,7 @@
+.array/
+tests/hook_matrix/out/live_e2e_report.json
+tests/hook_matrix/out/*.jsonl
+__pycache__/
+.venv/
+.ruff_cache/
+.DS_Store
