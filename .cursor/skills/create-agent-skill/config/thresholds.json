@@ -1,0 +1,6 @@
+{
+  "min_candidate_pass_rate": 0.85,
+  "min_lift_vs_baseline_pp": 10,
+  "max_critical_failures": 0,
+  "require_feedback_complete": true
+}

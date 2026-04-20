@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-from __future__ import annotations
 """Generate and serve a review page for eval results.
 
 Reads the workspace directory, discovers runs (directories with outputs/),
@@ -12,6 +11,8 @@ Usage:
 
 No dependencies beyond the Python stdlib are required.
 """
+
+from __future__ import annotations
 
 import argparse
 import base64
@@ -27,6 +28,8 @@ import webbrowser
 from functools import partial
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from pathlib import Path
+
+_SKILL_ROOT = Path(__file__).resolve().parents[2]
 
 # Files to exclude from output listings
 METADATA_FILES = {"transcript.md", "user_notes.md", "metrics.json"}
@@ -348,9 +351,10 @@ class ReviewHandler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(content)
         elif self.path == "/api/feedback":
-            data = b"{}"
             if self.feedback_path.exists():
                 data = self.feedback_path.read_bytes()
+            else:
+                data = json.dumps({"status": "draft", "reviews": []}).encode("utf-8")
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
             self.send_header("Content-Length", str(len(data)))
@@ -367,6 +371,8 @@ class ReviewHandler(BaseHTTPRequestHandler):
                 data = json.loads(body)
                 if not isinstance(data, dict) or "reviews" not in data:
                     raise ValueError("Expected JSON object with 'reviews' key")
+                if "status" not in data:
+                    data["status"] = "draft"
                 self.feedback_path.write_text(json.dumps(data, indent=2) + "\n")
                 resp = b'{"ok":true}'
                 self.send_response(200)
@@ -387,7 +393,13 @@ class ReviewHandler(BaseHTTPRequestHandler):
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Generate and serve eval review")
-    parser.add_argument("workspace", type=Path, help="Path to workspace directory")
+    parser.add_argument("workspace", type=Path, nargs="?", default=None, help="Path to workspace directory")
+    parser.add_argument(
+        "--iteration",
+        type=int,
+        default=None,
+        help="If set with --workspace, use <workspace>/iteration-<N> as the viewer workspace",
+    )
     parser.add_argument("--port", "-p", type=int, default=3117, help="Server port (default: 3117)")
     parser.add_argument("--skill-name", "-n", type=str, default=None, help="Skill name for header")
     parser.add_argument(
@@ -404,7 +416,12 @@ def main() -> None:
     )
     args = parser.parse_args()
 
+    if args.workspace is None:
+        print("Error: workspace path required", file=sys.stderr)
+        sys.exit(1)
     workspace = args.workspace.resolve()
+    if args.iteration is not None:
+        workspace = workspace / f"iteration-{args.iteration}"
     if not workspace.is_dir():
         print(f"Error: {workspace} is not a directory", file=sys.stderr)
         sys.exit(1)
@@ -416,6 +433,10 @@ def main() -> None:
 
     skill_name = args.skill_name or workspace.name.replace("-workspace", "")
     feedback_path = workspace / "feedback.json"
+    if args.benchmark is None:
+        cand = workspace / "benchmark.json"
+        if cand.is_file():
+            args.benchmark = cand
 
     previous: dict[str, dict] = {}
     if args.previous_workspace:

@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-from __future__ import annotations
 """Run the eval + improve loop until all pass or max iterations reached.
 
 Combines run_eval.py and improve_description.py in a loop, tracking history
 and returning the best description found. Supports train/test split to prevent
 overfitting.
 """
+
+from __future__ import annotations
 
 import argparse
 import json
@@ -16,21 +17,17 @@ import time
 import webbrowser
 from pathlib import Path
 
-try:
-    from scripts.generate_report import generate_html
-    from scripts.improve_description import improve_description
-    from scripts.run_eval import find_project_root, run_eval
-    from scripts.utils import parse_skill_md
-except ModuleNotFoundError:
-    # Support direct execution: `python3 scripts/run_loop.py ...`
-    from generate_report import generate_html
-    from improve_description import improve_description
-    from run_eval import find_project_root, run_eval
-    from utils import parse_skill_md
+_H = Path(__file__).resolve().parent
+_ROOT = Path(__file__).resolve().parents[2]
+for _p in (_ROOT, _H):
+    _s = str(_p)
+    if _s not in sys.path:
+        sys.path.insert(0, _s)
 
-# TODO(cursor-agent): run_loop currently depends on run_eval/improve_description,
-# which invoke `claude -p`. Keep this path gated until a Cursor-native,
-# deterministic trigger-eval + description-optimization interface is available.
+from generate_report import generate_html
+from improve_description import improve_description
+from run_eval import find_project_root, run_eval
+from scripts.utils import parse_skill_md
 
 
 def split_eval_set(eval_set: list[dict], holdout: float, seed: int = 42) -> tuple[list[dict], list[dict]]:

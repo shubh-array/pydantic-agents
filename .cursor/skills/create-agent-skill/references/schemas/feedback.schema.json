@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local/create-agent-skill/feedback.schema.json",
+  "type": "object",
+  "required": ["status", "reviews"],
+  "properties": {
+    "status": {"type": "string", "enum": ["draft", "complete"]},
+    "reviews": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["run_id"],
+        "properties": {
+          "run_id": {"type": "string"},
+          "feedback": {"type": "string"},
+          "timestamp": {"type": "string"}
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}
