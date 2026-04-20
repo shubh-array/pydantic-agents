@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local/create-agent-skill/eval_metadata.schema.json",
+  "type": "object",
+  "required": ["eval_id"],
+  "properties": {
+    "eval_id": {"type": "string", "minLength": 1},
+    "run_id": {"type": "string"},
+    "side": {"type": "string", "enum": ["with", "without", "old_skill"]},
+    "skill_name": {"type": "string"},
+    "prompt_hash": {"type": "string"}
+  },
+  "additionalProperties": true
+}

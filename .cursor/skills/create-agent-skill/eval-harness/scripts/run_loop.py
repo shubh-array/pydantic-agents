@@ -6,6 +6,8 @@ and returning the best description found. Supports train/test split to prevent
 overfitting.
 """
 
+from __future__ import annotations
+
 import argparse
 import json
 import random
@@ -15,9 +17,16 @@ import time
 import webbrowser
 from pathlib import Path
 
-from scripts.generate_report import generate_html
-from scripts.improve_description import improve_description
-from scripts.run_eval import find_project_root, run_eval
+_H = Path(__file__).resolve().parent
+_ROOT = Path(__file__).resolve().parents[2]
+for _p in (_ROOT, _H):
+    _s = str(_p)
+    if _s not in sys.path:
+        sys.path.insert(0, _s)
+
+from generate_report import generate_html
+from improve_description import improve_description
+from run_eval import find_project_root, run_eval
 from scripts.utils import parse_skill_md
 
 

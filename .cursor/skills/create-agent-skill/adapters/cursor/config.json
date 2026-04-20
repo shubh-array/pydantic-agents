@@ -1,0 +1,27 @@
+{
+  "cli": {
+    "binary": "agent",
+    "flags": ["--print", "--force", "--output-format=stream-json"],
+    "timeout_default_s": 600
+  },
+  "skills": {
+    "install_path_project": ".cursor/skills/",
+    "install_path_user": "~/.cursor/skills/",
+    "allowed_frontmatter_keys": [
+      "name",
+      "description",
+      "license",
+      "metadata",
+      "compatibility",
+      "disable-model-invocation"
+    ],
+    "experimental_frontmatter_keys": [],
+    "reserved_words": ["anthropic", "claude"],
+    "name_pattern": "^[a-z0-9-]+$",
+    "name_max_length": 64
+  },
+  "metrics": {
+    "duration_ms_source": "stream-json result object",
+    "tokens_supported": false
+  }
+}

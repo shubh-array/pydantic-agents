@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local/create-agent-skill/grading.schema.json",
+  "type": "object",
+  "required": ["expectations"],
+  "properties": {
+    "run_id": {"type": "string"},
+    "summary": {
+      "type": "object",
+      "properties": {
+        "pass_rate": {"type": "number"},
+        "passed": {"type": "integer"},
+        "failed": {"type": "integer"},
+        "total": {"type": "integer"}
+      }
+    },
+    "expectations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["assertion_id", "text", "passed", "evidence"],
+        "properties": {
+          "assertion_id": {"type": "string", "minLength": 1},
+          "text": {"type": "string"},
+          "passed": {"type": "boolean"},
+          "evidence": {"type": "string"},
+          "critical": {"type": "boolean"}
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": true
+}

@@ -1,0 +1,24 @@
+{
+  "cli": {
+    "binary": "claude",
+    "flags_trigger": ["-p", "--output-format", "stream-json", "--verbose", "--include-partial-messages"],
+    "flags_text": ["-p", "--output-format", "text"],
+    "timeout_default_s": 600
+  },
+  "skills": {
+    "install_path_user": "~/.claude/skills/",
+    "allowed_frontmatter_keys": [
+      "name",
+      "description",
+      "license",
+      "allowed-tools",
+      "metadata",
+      "compatibility",
+      "disable-model-invocation"
+    ],
+    "experimental_frontmatter_keys": [],
+    "reserved_words": [],
+    "name_pattern": "^[a-z0-9-]+$",
+    "name_max_length": 64
+  }
+}

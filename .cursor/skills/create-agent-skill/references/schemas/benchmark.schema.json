@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local/create-agent-skill/benchmark.schema.json",
+  "type": "object",
+  "required": ["metadata", "runs", "run_summary"],
+  "properties": {
+    "metadata": {"type": "object"},
+    "runs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["eval_id", "configuration", "run_number", "result"],
+        "properties": {
+          "eval_id": {},
+          "configuration": {"type": "string"},
+          "run_number": {"type": "integer"},
+          "result": {"type": "object"},
+          "expectations": {"type": "array"},
+          "notes": {"type": "array"}
+        },
+        "additionalProperties": true
+      }
+    },
+    "run_summary": {"type": "object"},
+    "notes": {"type": "array"}
+  },
+  "additionalProperties": true
+}

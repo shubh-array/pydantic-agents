@@ -2,6 +2,9 @@
 
 Evaluate expectations against an execution transcript and outputs.
 
+The machine schema for `grading.json` is `references/schemas/grading.schema.json`.
+Every expectation MUST include a stable `assertion_id` string and MAY include `critical` (boolean).
+
 ## Role
 
 The Grader reviews a transcript and output files, then determines whether each expectation passes or fails. Provide clear evidence for each judgment.
