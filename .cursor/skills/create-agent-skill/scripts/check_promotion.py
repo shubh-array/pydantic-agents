@@ -1,4 +1,4 @@
-"""Phase F gate: promotion thresholds from config/thresholds.json."""
+"""Phase F gate: promotion thresholds from ``config/thresholds.json``."""
 
 from __future__ import annotations
 
@@ -16,6 +16,37 @@ def _skill_root(here: Path) -> Path:
     return here.resolve().parents[1]
 
 
+def _candidate_config(run_summary: dict) -> str:
+    for key in ("with_skill",):
+        if key in run_summary:
+            return key
+    return "with_skill"
+
+
+def _baseline_config(run_summary: dict) -> str:
+    for key in ("without_skill", "old_skill"):
+        if key in run_summary:
+            return key
+    return "without_skill"
+
+
+def _critical_failures(benchmark: dict, candidate_cfg: str) -> int:
+    crit = 0
+    for run in benchmark.get("runs", []):
+        if run.get("configuration") != candidate_cfg:
+            continue
+        # Prefer the explicit expectation_summary produced by aggregate_benchmark;
+        # fall back to re-scanning raw expectations for older iterations.
+        summary = run.get("expectation_summary")
+        if isinstance(summary, dict) and "critical_failed" in summary:
+            crit += int(summary.get("critical_failed") or 0)
+            continue
+        for exp in run.get("expectations", []):
+            if exp.get("critical") and not exp.get("passed", False):
+                crit += 1
+    return crit
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Phase F promotion gate")
     parser.add_argument("--iteration", type=int, required=True)
@@ -23,7 +54,9 @@ def main() -> None:
     args = parser.parse_args()
 
     skill_root = _skill_root(Path(__file__))
-    thresholds = json.loads((skill_root / "config" / "thresholds.json").read_text(encoding="utf-8"))
+    thresholds = json.loads(
+        (skill_root / "config" / "thresholds.json").read_text(encoding="utf-8")
+    )
     iteration_dir = args.workspace / f"iteration-{args.iteration}"
     bench_path = iteration_dir / "benchmark.json"
     feedback_path = iteration_dir / "feedback.json"
@@ -35,24 +68,16 @@ def main() -> None:
     benchmark = json.loads(bench_path.read_text(encoding="utf-8"))
     run_summary = benchmark.get("run_summary", {})
 
-    candidate = run_summary.get("with", {})
-    baseline = run_summary.get("without", {})
-    if not candidate and run_summary.get("new_skill"):
-        candidate = run_summary["new_skill"]
-    if not baseline and run_summary.get("old_skill"):
-        baseline = run_summary["old_skill"]
+    candidate_cfg = _candidate_config(run_summary)
+    baseline_cfg = _baseline_config(run_summary)
+    candidate = run_summary.get(candidate_cfg, {})
+    baseline = run_summary.get(baseline_cfg, {})
 
     c_pr = float(candidate.get("pass_rate", {}).get("mean", 0.0))
     b_pr = float(baseline.get("pass_rate", {}).get("mean", 0.0))
     lift_pp = (c_pr - b_pr) * 100.0
 
-    crit = 0
-    for run in benchmark.get("runs", []):
-        if run.get("configuration") not in ("with", "new_skill"):
-            continue
-        for exp in run.get("expectations", []):
-            if exp.get("critical") and not exp.get("passed", False):
-                crit += 1
+    crit = _critical_failures(benchmark, candidate_cfg)
 
     errors: list = []
     if c_pr < float(thresholds["min_candidate_pass_rate"]):
@@ -64,7 +89,9 @@ def main() -> None:
             f"lift {lift_pp:.1f} pp < min {thresholds['min_lift_vs_baseline_pp']} pp"
         )
     if crit > int(thresholds["max_critical_failures"]):
-        errors.append(f"critical failures {crit} > max {thresholds['max_critical_failures']}")
+        errors.append(
+            f"critical failures {crit} > max {thresholds['max_critical_failures']}"
+        )
 
     if thresholds.get("require_feedback_complete", True):
         if not feedback_path.is_file():

@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local/create-agent-skill/iteration.schema.json",
+  "title": "iteration.json",
+  "description": "Per-iteration manifest for dual execution (Phase C'). Sits at <workspace>/iteration-N/iteration.json.",
+  "type": "object",
+  "required": ["skill_path", "evals_path"],
+  "properties": {
+    "skill_path": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Absolute path to the candidate skill directory (contains SKILL.md)."
+    },
+    "evals_path": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Absolute path to the eval set JSON file (must match evals.schema.json)."
+    },
+    "agent_prompt": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Absolute path to the executor template. Should support {{USER_INPUT}} and {{SKILL_CONTENT}} placeholders. Defaults to agents/executor.md when omitted."
+    },
+    "baseline_type": {
+      "type": "string",
+      "enum": ["without_skill", "old_skill"],
+      "default": "without_skill",
+      "description": "Which baseline to run alongside with_skill. Use old_skill to compare against a prior snapshot."
+    },
+    "old_skill_path": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Absolute path to a prior snapshot of the skill. Required when baseline_type is 'old_skill'."
+    },
+    "runs_per_configuration": {
+      "type": "integer",
+      "minimum": 1,
+      "default": 1,
+      "description": "Number of independent runs per (eval, side) combination. Higher values reduce noise at the cost of time."
+    },
+    "iteration": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Optional informational iteration number; the harness derives the directory from --iteration."
+    },
+    "notes": {
+      "type": "string",
+      "description": "Free-form author notes about this iteration (motivation, change list)."
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {"baseline_type": {"const": "old_skill"}},
+        "required": ["baseline_type"]
+      },
+      "then": {"required": ["old_skill_path"]}
+    }
+  ],
+  "additionalProperties": true
+}

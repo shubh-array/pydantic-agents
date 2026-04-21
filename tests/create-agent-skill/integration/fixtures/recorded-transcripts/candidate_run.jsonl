@@ -1,0 +1,4 @@
+{"type":"system","subtype":"init","session_id":"fake-c"}
+{"type":"user","message":{"role":"user","content":[{"type":"text","text":"Fill cell B10 with =SUM(B1:B9)"}]}}
+{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"Wrote =SUM(B1:B9) to B10 in data.xlsx."}]}}
+{"type":"result","subtype":"success","duration_ms":1234,"duration_api_ms":1100,"is_error":false,"result":"Wrote =SUM(B1:B9) to B10 in data.xlsx.","usage":{"inputTokens":120,"outputTokens":45}}

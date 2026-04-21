@@ -2,13 +2,31 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://local/create-agent-skill/eval_metadata.schema.json",
   "type": "object",
-  "required": ["eval_id"],
+  "required": ["eval_id", "prompt"],
   "properties": {
-    "eval_id": {"type": "string", "minLength": 1},
-    "run_id": {"type": "string"},
-    "side": {"type": "string", "enum": ["with", "without", "old_skill"]},
+    "eval_id": {"oneOf": [{"type": "string", "minLength": 1}, {"type": "integer"}]},
+    "eval_name": {"type": "string"},
+    "prompt": {"type": "string", "minLength": 1},
     "skill_name": {"type": "string"},
-    "prompt_hash": {"type": "string"}
+    "files": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "expectations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["assertion_id", "text"],
+        "properties": {
+          "assertion_id": {"type": "string", "minLength": 1},
+          "text": {"type": "string", "minLength": 1},
+          "critical": {"type": "boolean"}
+        },
+        "additionalProperties": true
+      }
+    }
   },
   "additionalProperties": true
 }

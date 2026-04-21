@@ -62,7 +62,7 @@ def load_iteration_runs(iteration_dir: Path) -> dict:
             if not side_dir.is_dir():
                 continue
             cfg = side_dir.name
-            if cfg not in ("with", "without", "old_skill"):
+            if cfg not in ("with_skill", "without_skill", "old_skill"):
                 continue
             if cfg not in results:
                 results[cfg] = []
@@ -114,7 +114,7 @@ def load_iteration_runs(iteration_dir: Path) -> dict:
 
 def aggregate_results(results: dict) -> dict:
     run_summary = {}
-    _prio = {"with": 0, "new_skill": 1, "without": 2, "old_skill": 3}
+    _prio = {"with_skill": 0, "new_skill": 1, "without_skill": 2, "old_skill": 3}
     configs = sorted(results.keys(), key=lambda x: _prio.get(x, 99))
     for cfg in configs:
         runs = results.get(cfg, [])
@@ -167,17 +167,54 @@ def aggregate_results(results: dict) -> dict:
     return run_summary
 
 
+def _expectation_summary(expectations: list) -> dict:
+    """Set-equality-friendly summary that keeps assertion_id + critical visible.
+
+    Benchmark consumers (e.g. ``check_promotion.py``) should be able to count
+    critical failures without re-reading grading.json, so we surface the full
+    (id, passed, critical) triplets plus aggregate counts.
+    """
+    ids = []
+    critical_failed = 0
+    critical_total = 0
+    for e in expectations:
+        aid = e.get("assertion_id")
+        passed = bool(e.get("passed", False))
+        critical = bool(e.get("critical", False))
+        if isinstance(aid, str):
+            ids.append(aid)
+        if critical:
+            critical_total += 1
+            if not passed:
+                critical_failed += 1
+    return {
+        "assertion_ids": ids,
+        "critical_total": critical_total,
+        "critical_failed": critical_failed,
+    }
+
+
 def generate_benchmark(
     iteration_dir: Path,
     skill_name: str = "",
     skill_path: str = "",
+    runs_per_configuration: int = 1,
 ) -> dict:
     results = load_iteration_runs(iteration_dir)
     run_summary = aggregate_results(results)
+    # Infer actual runs_per_configuration from data if caller passed the
+    # default and we have more than one run per side.
+    observed = 0
+    for cfg_runs in results.values():
+        for r in cfg_runs:
+            observed = max(observed, int(r.get("run_number", 1)))
+    runs_per_configuration = max(runs_per_configuration, observed)
+
     runs_out = []
     for cfg in sorted(results.keys()):
         for result in results[cfg]:
             tok = result.get("tokens")
+            exp_summary = _expectation_summary(result["expectations"])
             runs_out.append(
                 {
                     "eval_id": result["eval_id"],
@@ -189,11 +226,13 @@ def generate_benchmark(
                         "failed": result["failed"],
                         "total": result["total"],
                         "time_seconds": result["time_seconds"],
-                        "tokens": 0 if tok is None else tok,
+                        # None preserved; do not coerce to zero.
+                        "tokens": tok,
                         "tool_calls": result.get("tool_calls", 0),
                         "errors": result.get("errors", 0),
                     },
                     "expectations": result["expectations"],
+                    "expectation_summary": exp_summary,
                     "notes": result["notes"],
                 }
             )
@@ -206,7 +245,7 @@ def generate_benchmark(
             "analyzer_model": "<model-name>",
             "timestamp": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
             "evals_run": eval_ids,
-            "runs_per_configuration": 1,
+            "runs_per_configuration": runs_per_configuration,
         },
         "runs": runs_out,
         "run_summary": run_summary,
@@ -217,7 +256,7 @@ def generate_benchmark(
 def generate_markdown(benchmark: dict) -> str:
     metadata = benchmark["metadata"]
     run_summary = benchmark["run_summary"]
-    _prio = {"with": 0, "new_skill": 1, "without": 2, "old_skill": 3}
+    _prio = {"with_skill": 0, "new_skill": 1, "without_skill": 2, "old_skill": 3}
     configs = sorted((k for k in run_summary if k != "delta"), key=lambda x: _prio.get(x, 99))
     config_a = configs[0] if len(configs) >= 1 else "config_a"
     config_b = configs[1] if len(configs) >= 2 else "config_b"
@@ -275,12 +314,18 @@ def main() -> None:
     parser.add_argument("--skill-name", default="")
     parser.add_argument("--skill-path", default="")
     parser.add_argument("-o", "--output", type=Path, default=None)
+    parser.add_argument("--runs-per-configuration", type=int, default=1)
     args = parser.parse_args()
     iteration_dir = args.workspace / f"iteration-{args.iteration}"
     if not iteration_dir.is_dir():
         print(f"Directory not found: {iteration_dir}", file=sys.stderr)
         sys.exit(1)
-    benchmark = generate_benchmark(iteration_dir, args.skill_name, args.skill_path)
+    benchmark = generate_benchmark(
+        iteration_dir,
+        args.skill_name,
+        args.skill_path,
+        runs_per_configuration=int(args.runs_per_configuration),
+    )
     out_json = args.output or (iteration_dir / "benchmark.json")
     out_md = out_json.with_suffix(".md")
     out_json.write_text(json.dumps(benchmark, indent=2) + "\n", encoding="utf-8")

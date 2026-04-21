@@ -19,7 +19,6 @@ import base64
 import json
 import mimetypes
 import os
-import re
 import signal
 import subprocess
 import sys
@@ -31,8 +30,11 @@ from pathlib import Path
 
 _SKILL_ROOT = Path(__file__).resolve().parents[2]
 
-# Files to exclude from output listings
-METADATA_FILES = {"transcript.md", "user_notes.md", "metrics.json"}
+# Files to exclude from output listings (under run_dir/outputs/)
+METADATA_FILES = {
+    "user_notes.md",
+    "metrics.json",
+}
 
 # Extensions we render as inline text
 TEXT_EXTENSIONS = {
@@ -62,7 +64,11 @@ def get_mime_type(path: Path) -> str:
 
 
 def find_runs(workspace: Path) -> list[dict]:
-    """Recursively find directories that contain an outputs/ subdirectory."""
+    """Recursively find run directories.
+
+    A run directory is identified by the presence of an ``outputs/``
+    subdirectory (canonical layout: ``<eval-id>/<config>/run-N/outputs/``).
+    """
     runs: list[dict] = []
     _find_runs_recursive(workspace, workspace, runs)
     runs.sort(key=lambda r: (r.get("eval_id", float("inf")), r["id"]))
@@ -73,8 +79,7 @@ def _find_runs_recursive(root: Path, current: Path, runs: list[dict]) -> None:
     if not current.is_dir():
         return
 
-    outputs_dir = current / "outputs"
-    if outputs_dir.is_dir():
+    if (current / "outputs").is_dir():
         run = build_run(root, current)
         if run:
             runs.append(run)
@@ -91,44 +96,25 @@ def build_run(root: Path, run_dir: Path) -> dict | None:
     prompt = ""
     eval_id = None
 
-    # Try eval_metadata.json
-    for candidate in [run_dir / "eval_metadata.json", run_dir.parent / "eval_metadata.json"]:
-        if candidate.exists():
-            try:
-                metadata = json.loads(candidate.read_text())
-                prompt = metadata.get("prompt", "")
-                eval_id = metadata.get("eval_id")
-            except (json.JSONDecodeError, OSError):
-                pass
-            if prompt:
-                break
-
-    # Fall back to transcript.md
-    if not prompt:
-        for candidate in [run_dir / "transcript.md", run_dir / "outputs" / "transcript.md"]:
-            if candidate.exists():
-                try:
-                    text = candidate.read_text()
-                    match = re.search(r"## Eval Prompt\n\n([\s\S]*?)(?=\n##|$)", text)
-                    if match:
-                        prompt = match.group(1).strip()
-                except OSError:
-                    pass
-                if prompt:
-                    break
+    eval_metadata_path = run_dir.parent.parent / "eval_metadata.json"
+    if eval_metadata_path.is_file():
+        try:
+            metadata = json.loads(eval_metadata_path.read_text())
+            prompt = metadata.get("prompt", "")
+            eval_id = metadata.get("eval_id")
+        except (json.JSONDecodeError, OSError):
+            pass
 
     if not prompt:
         prompt = "(No prompt found)"
 
     run_id = str(run_dir.relative_to(root)).replace("/", "-").replace("\\", "-")
 
-    # Collect output files
-    outputs_dir = run_dir / "outputs"
     output_files: list[dict] = []
-    if outputs_dir.is_dir():
-        for f in sorted(outputs_dir.iterdir()):
-            if f.is_file() and f.name not in METADATA_FILES:
-                output_files.append(embed_file(f))
+    outputs_dir = run_dir / "outputs"
+    for f in sorted(outputs_dir.iterdir()):
+        if f.is_file() and f.name not in METADATA_FILES:
+            output_files.append(embed_file(f))
 
     # Load grading if present
     grading = None

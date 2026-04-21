@@ -1,37 +1,90 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://local/create-agent-skill/evals.schema.json",
-  "oneOf": [
-    {
-      "type": "array",
-      "items": {
-        "type": "object",
-        "required": ["query", "should_trigger"],
-        "properties": {
-          "query": {"type": "string", "minLength": 1},
-          "should_trigger": {"type": "boolean"}
-        },
-        "additionalProperties": true
-      }
-    },
-    {
+  "$defs": {
+    "triggerCase": {
       "type": "object",
-      "required": ["queries"],
+      "required": [
+        "query",
+        "should_trigger"
+      ],
       "properties": {
-        "queries": {
+        "query": {
+          "type": "string",
+          "minLength": 1
+        },
+        "should_trigger": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": true
+    },
+    "executionExpectation": {
+      "type": "object",
+      "required": [
+        "assertion_id",
+        "text"
+      ],
+      "properties": {
+        "assertion_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1
+        },
+        "critical": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": true
+    },
+    "executionCase": {
+      "type": "object",
+      "required": [
+        "id",
+        "prompt"
+      ],
+      "properties": {
+        "id": {
+          "oneOf": [
+            {"type": "string", "minLength": 1},
+            {"type": "integer"}
+          ]
+        },
+        "eval_id": {
+          "type": "string"
+        },
+        "prompt": {
+          "type": "string",
+          "minLength": 1
+        },
+        "files": {
           "type": "array",
           "items": {
-            "type": "object",
-            "required": ["query", "should_trigger"],
-            "properties": {
-              "query": {"type": "string", "minLength": 1},
-              "should_trigger": {"type": "boolean"}
-            },
-            "additionalProperties": true
+            "type": "string"
+          }
+        },
+        "expectations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/executionExpectation"
           }
         }
       },
       "additionalProperties": true
     }
-  ]
+  },
+  "type": "array",
+  "items": {
+    "oneOf": [
+      {
+        "$ref": "#/$defs/triggerCase"
+      },
+      {
+        "$ref": "#/$defs/executionCase"
+      }
+    ]
+  }
 }

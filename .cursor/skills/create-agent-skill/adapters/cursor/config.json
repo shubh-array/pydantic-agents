@@ -21,7 +21,9 @@
     "name_max_length": 64
   },
   "metrics": {
-    "duration_ms_source": "stream-json result object",
-    "tokens_supported": false
+    "duration_ms_source": "stream-json result.duration_ms (top-level)",
+    "duration_api_ms_source": "stream-json result.duration_api_ms (top-level)",
+    "tokens_source": "stream-json result.usage {inputTokens,outputTokens,cacheReadTokens,cacheWriteTokens}",
+    "tokens_supported": true
   }
 }

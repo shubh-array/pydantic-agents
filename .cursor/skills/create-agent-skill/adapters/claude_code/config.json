@@ -1,7 +1,7 @@
 {
   "cli": {
     "binary": "claude",
-    "flags_trigger": ["-p", "--output-format", "stream-json", "--verbose", "--include-partial-messages"],
+    "flags_stream": ["-p", "--output-format", "stream-json", "--verbose", "--include-partial-messages"],
     "flags_text": ["-p", "--output-format", "text"],
     "timeout_default_s": 600
   },
@@ -20,5 +20,10 @@
     "reserved_words": [],
     "name_pattern": "^[a-z0-9-]+$",
     "name_max_length": 64
+  },
+  "metrics": {
+    "duration_ms_source": "stream-json result.duration_ms",
+    "tokens_source": "stream-json result.usage",
+    "tokens_supported": true
   }
 }

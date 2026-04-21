@@ -1,0 +1,10 @@
+[
+  {
+    "id": 1,
+    "prompt": "Fill cell B10 with =SUM(B1:B9) in data.xlsx",
+    "expectations": [
+      {"assertion_id": "sum-b10", "text": "B10 contains SUM formula", "critical": true},
+      {"assertion_id": "no-errors", "text": "No errors raised"}
+    ]
+  }
+]

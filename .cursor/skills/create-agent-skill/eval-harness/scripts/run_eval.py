@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Run trigger evaluation (adapter-backed) or scaffold dual-run layout."""
+"""Run trigger evaluation (Phase C trigger-mode) or dual-execution scaffold.
+
+Core is agent-agnostic; subprocess / parsing / tokens are the adapter's job.
+"""
 
 from __future__ import annotations
 
@@ -17,28 +20,29 @@ from adapters import get_active_adapter
 from scripts.utils import parse_skill_md
 
 
+_MARKER_DIRS = (".cursor", ".claude", ".git")
+
+
 def find_project_root() -> Path:
-    """Walk up from cwd for `.claude/` (Claude Code); else cwd."""
+    """Walk up from cwd looking for any known project-root marker dir.
+
+    Agent-agnostic: any of ``.cursor`` / ``.claude`` / ``.git`` counts.
+    """
     current = Path.cwd()
     for parent in [current, *current.parents]:
-        if (parent / ".claude").is_dir():
-            return parent
+        for marker in _MARKER_DIRS:
+            if (parent / marker).is_dir():
+                return parent
     return current
 
 
 def normalize_eval_set(raw: object) -> list:
     if isinstance(raw, list):
         return raw
-    if isinstance(raw, dict) and "queries" in raw:
-        return raw["queries"]
-    raise ValueError("eval set must be a JSON array or object with 'queries'")
+    raise ValueError("eval set must be a JSON array")
 
 
-def _run_trigger_for_query(
-    query: str,
-    skill_description: str,
-    timeout: int,
-) -> bool:
+def _run_trigger_for_query(query: str, skill_description: str) -> bool:
     adapter = get_active_adapter()
     return bool(adapter.evaluate_trigger(skill_description, query)["triggered"])
 
@@ -54,22 +58,16 @@ def run_eval(
     project_root: Path | None = None,
     model: str | None = None,
 ) -> dict:
-    _ = (project_root, model)
+    _ = (project_root, model, timeout)
     results_map: dict = {}
     with ThreadPoolExecutor(max_workers=max(1, num_workers)) as ex:
-        future_to_meta = {}
+        future_to_item = {}
         for item in eval_set:
             for _ in range(runs_per_query):
-                fut = ex.submit(
-                    _run_trigger_for_query,
-                    item["query"],
-                    description,
-                    timeout,
-                )
-                future_to_meta[fut] = item
-
-        for fut in as_completed(future_to_meta):
-            item = future_to_meta[fut]
+                fut = ex.submit(_run_trigger_for_query, item["query"], description)
+                future_to_item[fut] = item
+        for fut in as_completed(future_to_item):
+            item = future_to_item[fut]
             q = item["query"]
             if q not in results_map:
                 results_map[q] = {"item": item, "triggers": []}
@@ -83,23 +81,19 @@ def run_eval(
     for query, data in results_map.items():
         item = data["item"]
         triggers = data["triggers"]
-        trigger_rate = sum(triggers) / len(triggers) if triggers else 0.0
-        should_trigger = item["should_trigger"]
-        if should_trigger:
-            did_pass = trigger_rate >= trigger_threshold
-        else:
-            did_pass = trigger_rate < trigger_threshold
+        rate = sum(triggers) / len(triggers) if triggers else 0.0
+        expected = item["should_trigger"]
+        did_pass = rate >= trigger_threshold if expected else rate < trigger_threshold
         results.append(
             {
                 "query": query,
-                "should_trigger": should_trigger,
-                "trigger_rate": trigger_rate,
+                "should_trigger": expected,
+                "trigger_rate": rate,
                 "triggers": sum(triggers),
                 "runs": len(triggers),
                 "pass": did_pass,
             }
         )
-
     passed = sum(1 for r in results if r["pass"])
     total = len(results)
     return {
@@ -131,20 +125,56 @@ def cmd_trigger(args: argparse.Namespace) -> None:
         trigger_threshold=args.trigger_threshold,
     )
     if args.verbose:
-        summary = output["summary"]
-        print(f"Results: {summary['passed']}/{summary['total']} passed", file=sys.stderr)
-        for r in output["results"]:
-            status = "PASS" if r["pass"] else "FAIL"
-            rate_str = f"{r['triggers']}/{r['runs']}"
-            print(
-                f"  [{status}] rate={rate_str} expected={r['should_trigger']}: {r['query'][:70]}",
-                file=sys.stderr,
-            )
+        s = output["summary"]
+        print(f"Results: {s['passed']}/{s['total']} passed", file=sys.stderr)
     print(json.dumps(output, indent=2))
 
 
+def _validate_iteration_manifest(meta: dict) -> None:
+    """Validate ``iteration.json`` against its JSON schema (hard requirement).
+
+    The schema lives at ``references/schemas/iteration.schema.json`` and
+    documents every field the harness understands; failing here is much more
+    helpful than letting a KeyError bubble up three frames deeper.
+    """
+    try:
+        import jsonschema  # type: ignore
+    except ImportError as exc:  # pragma: no cover - dev dep
+        print(
+            f"jsonschema required for iteration.json validation: {exc}",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+    schema_path = _ROOT / "references" / "schemas" / "iteration.schema.json"
+    schema = json.loads(schema_path.read_text(encoding="utf-8"))
+    try:
+        jsonschema.validate(meta, schema)
+    except jsonschema.ValidationError as exc:
+        print(f"iteration.json schema error: {exc.message}", file=sys.stderr)
+        sys.exit(1)
+
+
+def _read_skill_content(skill_path: Path) -> str:
+    """Return the raw SKILL.md content used to instruct a with_skill run."""
+    skill_md = skill_path / "SKILL.md"
+    if not skill_md.is_file():
+        print(f"missing SKILL.md at {skill_md}", file=sys.stderr)
+        sys.exit(1)
+    return skill_md.read_text(encoding="utf-8")
+
+
 def cmd_dual(args: argparse.Namespace) -> None:
-    """Create iteration run dirs and invoke adapter.invoke_subagent per eval side."""
+    """Orchestrate per-eval dual runs through the active adapter.
+
+    Isolation contract (H1):
+        with_skill  → adapter receives the candidate SKILL.md content via
+                      ``skill_content`` substitution.
+        without_skill → adapter receives ``skill_content=None``; the executor
+                      template renders an empty ``<skill>`` block so the
+                      agent solves the task from first principles.
+        old_skill  → adapter receives the snapshot SKILL.md content from
+                      ``old_skill_path`` in iteration.json.
+    """
     workspace = Path(args.workspace).resolve()
     iteration_dir = workspace / f"iteration-{args.iteration}"
     manifest = iteration_dir / "iteration.json"
@@ -152,41 +182,106 @@ def cmd_dual(args: argparse.Namespace) -> None:
         print(f"missing {manifest}", file=sys.stderr)
         sys.exit(1)
     meta = json.loads(manifest.read_text(encoding="utf-8"))
+    _validate_iteration_manifest(meta)
     skill_path = Path(meta.get("skill_path", args.skill_path)).resolve()
     evals_path = Path(meta.get("evals_path", args.evals)).resolve()
-    agent_prompt = str(Path(meta.get("agent_prompt", args.agent_prompt)).resolve())
+    agent_prompt = str(
+        Path(meta.get("agent_prompt", args.agent_prompt)).resolve()
+    )
     raw = json.loads(evals_path.read_text(encoding="utf-8"))
     cases = normalize_eval_set(raw)
     baseline_type = meta.get("baseline_type", "without_skill")
-    sides = ["with", "without"]
+    sides = ["with_skill", "without_skill"]
     if baseline_type == "old_skill":
-        sides = ["with", "old_skill"]
+        sides = ["with_skill", "old_skill"]
+    runs_per_config = int(meta.get("runs_per_configuration", 1))
     adapter = get_active_adapter()
+    skill_name = parse_skill_md(skill_path)[0]
+
+    with_skill_content = _read_skill_content(skill_path)
+    old_skill_content: str | None = None
+    if baseline_type == "old_skill":
+        old_path_raw = meta.get("old_skill_path")
+        if not old_path_raw:
+            print(
+                "iteration.json has baseline_type='old_skill' but no 'old_skill_path'",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+        old_skill_content = _read_skill_content(Path(old_path_raw).resolve())
+
+    side_to_skill = {
+        "with_skill": with_skill_content,
+        "without_skill": None,
+        "old_skill": old_skill_content,
+    }
     for case in cases:
         eid = str(case.get("eval_id", case.get("id", "eval")))
         user_input = str(case.get("prompt", ""))
-        for side in sides:
-            run_dir = iteration_dir / eid / side / "run-1"
-            (run_dir / "outputs").mkdir(parents=True, exist_ok=True)
-            res = adapter.invoke_subagent(
-                agent_prompt,
-                user_input,
-                str(run_dir),
-                timeout_s=args.timeout,
-            )
-            (run_dir / "transcript.txt").write_text(res["stdout"] or "", encoding="utf-8")
-            timing = {
-                "total_duration_seconds": (res["duration_ms"] or 0) / 1000.0,
-                "total_tokens": None,
-            }
-            (run_dir / "timing.json").write_text(json.dumps(timing, indent=2) + "\n", encoding="utf-8")
-            em = {
+        expected = list(case.get("expectations", []) or [])
+        files = list(case.get("files", []) or [])
+
+        eval_dir = iteration_dir / eid
+        eval_dir.mkdir(parents=True, exist_ok=True)
+        meta_path = eval_dir / "eval_metadata.json"
+        if not meta_path.exists():
+            meta_obj: dict = {
                 "eval_id": eid,
-                "run_id": f"{eid}-{side}-1",
-                "side": side,
-                "skill_name": parse_skill_md(skill_path)[0],
+                "skill_name": skill_name,
+                "prompt": user_input,
+                "expectations": expected,
             }
-            (run_dir / "eval_metadata.json").write_text(json.dumps(em, indent=2) + "\n", encoding="utf-8")
+            if files:
+                meta_obj["files"] = files
+            meta_path.write_text(
+                json.dumps(meta_obj, indent=2) + "\n",
+                encoding="utf-8",
+            )
+
+        for side in sides:
+            skill_content_for_side = side_to_skill.get(side)
+            for r in range(1, runs_per_config + 1):
+                run_dir = iteration_dir / eid / side / f"run-{r}"
+                outputs_dir = run_dir / "outputs"
+                outputs_dir.mkdir(parents=True, exist_ok=True)
+                res = adapter.invoke_subagent(
+                    agent_prompt,
+                    user_input,
+                    str(outputs_dir),
+                    timeout_s=args.timeout,
+                    skill_content=skill_content_for_side,
+                )
+                transcript_in_outputs = outputs_dir / "transcript.jsonl"
+                if transcript_in_outputs.exists():
+                    transcript_in_outputs.rename(run_dir / "transcript.jsonl")
+                elif not res.get("transcript_path"):
+                    # Adapter writes transcript.jsonl for stream adapters. Fall back
+                    # to writing raw stdout if the adapter did not set a path.
+                    (run_dir / "transcript.jsonl").write_text(
+                        res["stdout"] or "", encoding="utf-8"
+                    )
+                timing = {
+                    "total_duration_seconds": (res["duration_ms"] or 0) / 1000.0,
+                    "total_duration_api_seconds": (
+                        None
+                        if res.get("duration_api_ms") is None
+                        else (res["duration_api_ms"] or 0) / 1000.0
+                    ),
+                    "total_tokens": (
+                        None
+                        if res.get("tokens") is None
+                        else (
+                            int(res["tokens"].get("input", 0))
+                            + int(res["tokens"].get("output", 0))
+                        )
+                    ),
+                    "tokens_detail": res.get("tokens"),
+                    "status": res.get("status"),
+                    "exit_code": res.get("exit_code"),
+                }
+                (run_dir / "timing.json").write_text(
+                    json.dumps(timing, indent=2) + "\n", encoding="utf-8"
+                )
 
 
 def main() -> None:
@@ -208,7 +303,15 @@ def main() -> None:
     p_d.add_argument("--workspace", type=Path, default=Path.cwd())
     p_d.add_argument("--skill-path", type=Path, default=Path("."))
     p_d.add_argument("--evals", type=Path, default=Path("evals/evals.json"))
-    p_d.add_argument("--agent-prompt", type=Path, default=_ROOT / "agents" / "analyzer.md")
+    p_d.add_argument(
+        "--agent-prompt",
+        type=Path,
+        default=_ROOT / "agents" / "executor.md",
+        help=(
+            "Executor template supporting {{USER_INPUT}} and {{SKILL_CONTENT}}."
+            " Defaults to agents/executor.md; override only for bespoke flows."
+        ),
+    )
     p_d.add_argument("--timeout", type=int, default=600)
 
     args = parser.parse_args()

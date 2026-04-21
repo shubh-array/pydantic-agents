@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local/create-agent-skill/timing.schema.json",
+  "type": "object",
+  "properties": {
+    "total_duration_seconds": {"type": "number"},
+    "total_duration_api_seconds": {"type": ["number", "null"]},
+    "total_tokens": {"type": ["integer", "null"]},
+    "tokens_detail": {
+      "type": ["object", "null"],
+      "properties": {
+        "input": {"type": "integer"},
+        "output": {"type": "integer"}
+      },
+      "additionalProperties": true
+    },
+    "duration_ms": {"type": "number"},
+    "status": {"type": "string"},
+    "exit_code": {"type": "integer"}
+  },
+  "additionalProperties": true
+}

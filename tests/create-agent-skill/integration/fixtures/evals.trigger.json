@@ -1,0 +1,4 @@
+[
+  {"query": "edit my spreadsheet", "should_trigger": true},
+  {"query": "tell me a joke", "should_trigger": false}
+]

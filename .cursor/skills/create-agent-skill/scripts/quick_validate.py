@@ -1,8 +1,15 @@
-"""Phase A: validate SKILL.md frontmatter using the active adapter."""
+"""Phase A: validate SKILL.md frontmatter using the active adapter.
+
+Also performs a Phase B-adjacent structural check: when a sibling
+``evals/evals.json`` is present, it is schema-validated against
+``references/schemas/evals.schema.json`` so malformed eval authoring
+is caught before Phase C.
+"""
 
 from __future__ import annotations
 
 import argparse
+import json
 import re
 import sys
 from pathlib import Path
@@ -64,11 +71,47 @@ def validate_skill(skill_path: Path) -> tuple:
         return False, f"Description too long ({len(desc)} > 1024)"
 
     adapter = get_active_adapter()
-    issues = adapter.validate_frontmatter(fm)
+    issues = adapter.validate_frontmatter(fm, skill_dir=str(skill_path))
     if issues:
         return False, "; ".join(issues)
 
+    evals_issue = _validate_evals_if_present(skill_path)
+    if evals_issue:
+        return False, evals_issue
+
     return True, "Skill is valid!"
+
+
+def _validate_evals_if_present(skill_path: Path) -> str:
+    """Phase B gate: schema-validate ``evals/evals.json`` when present.
+
+    Returns an error string on failure, ``""`` on success or when the file
+    is absent. ``jsonschema`` is a hard requirement (dev dep); if absent,
+    the gate fails loudly rather than silently skipping.
+    """
+    evals_file = skill_path / "evals" / "evals.json"
+    if not evals_file.is_file():
+        return ""
+    try:
+        import jsonschema
+    except ImportError as exc:
+        return f"jsonschema required for Phase B validation: {exc}"
+    schema_path = (
+        _skill_root(Path(__file__))
+        / "references"
+        / "schemas"
+        / "evals.schema.json"
+    )
+    try:
+        schema = json.loads(schema_path.read_text(encoding="utf-8"))
+        data = json.loads(evals_file.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        return f"evals/evals.json unreadable: {exc}"
+    try:
+        jsonschema.validate(data, schema)
+    except jsonschema.ValidationError as exc:
+        return f"evals/evals.json schema: {exc.message}"
+    return ""
 
 
 def main() -> None:

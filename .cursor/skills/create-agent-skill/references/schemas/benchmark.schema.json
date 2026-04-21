@@ -2,27 +2,131 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://local/create-agent-skill/benchmark.schema.json",
   "type": "object",
-  "required": ["metadata", "runs", "run_summary"],
+  "required": [
+    "metadata",
+    "runs",
+    "run_summary"
+  ],
   "properties": {
-    "metadata": {"type": "object"},
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "skill_name": {
+          "type": "string"
+        },
+        "skill_path": {
+          "type": "string"
+        },
+        "executor_model": {
+          "type": "string"
+        },
+        "analyzer_model": {
+          "type": "string"
+        },
+        "timestamp": {
+          "type": "string"
+        },
+        "evals_run": {
+          "type": "array"
+        },
+        "runs_per_configuration": {
+          "type": "integer"
+        }
+      },
+      "additionalProperties": true
+    },
     "runs": {
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["eval_id", "configuration", "run_number", "result"],
+        "required": [
+          "eval_id",
+          "configuration",
+          "run_number",
+          "result"
+        ],
         "properties": {
           "eval_id": {},
-          "configuration": {"type": "string"},
-          "run_number": {"type": "integer"},
-          "result": {"type": "object"},
-          "expectations": {"type": "array"},
-          "notes": {"type": "array"}
+          "eval_name": {
+            "type": "string"
+          },
+          "configuration": {
+            "type": "string",
+            "enum": [
+              "with_skill",
+              "without_skill",
+              "old_skill"
+            ]
+          },
+          "run_number": {
+            "type": "integer"
+          },
+          "result": {
+            "type": "object",
+            "properties": {
+              "pass_rate": {
+                "type": "number"
+              },
+              "passed": {
+                "type": "integer"
+              },
+              "failed": {
+                "type": "integer"
+              },
+              "total": {
+                "type": "integer"
+              },
+              "time_seconds": {
+                "type": "number"
+              },
+              "tokens": {
+                "type": ["integer", "null"],
+                "description": "Total tokens for this run; null when the active adapter does not expose usage."
+              },
+              "tool_calls": {
+                "type": "integer"
+              },
+              "errors": {
+                "type": "integer"
+              }
+            },
+            "additionalProperties": true
+          },
+          "expectations": {
+            "type": "array"
+          },
+          "expectation_summary": {
+            "type": "object",
+            "properties": {
+              "assertion_ids": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "critical_total": {
+                "type": "integer"
+              },
+              "critical_failed": {
+                "type": "integer"
+              }
+            },
+            "additionalProperties": true
+          },
+          "notes": {
+            "type": "array"
+          }
         },
         "additionalProperties": true
       }
     },
-    "run_summary": {"type": "object"},
-    "notes": {"type": "array"}
+    "run_summary": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "notes": {
+      "type": "array"
+    }
   },
   "additionalProperties": true
 }
