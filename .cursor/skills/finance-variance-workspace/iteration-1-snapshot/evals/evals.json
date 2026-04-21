@@ -1,0 +1,131 @@
+[
+  {
+    "id": 1,
+    "eval_id": "eval-1",
+    "prompt": "Here's our monthly budget vs. actuals for Q1. Please run a variance analysis and give me variance.csv and summary.md.\n\n```\ncategory,budget,actual\nMarketing,10000,12500\nEngineering,50000,48000\nSales,30000,31500\nHR,15000,14200\nOperations,20000,19800\n```",
+    "expectations": [
+      {
+        "assertion_id": "variance-csv-exists",
+        "text": "variance.csv exists in the outputs directory",
+        "critical": true
+      },
+      {
+        "assertion_id": "summary-md-exists",
+        "text": "summary.md exists in the outputs directory",
+        "critical": true
+      },
+      {
+        "assertion_id": "variance-csv-has-5-cols",
+        "text": "variance.csv has exactly the columns: category, budget, actual, variance, variance_pct",
+        "critical": true
+      },
+      {
+        "assertion_id": "variance-pct-format",
+        "text": "variance_pct values use the format like '25.0%' or '-4.0%' (one decimal, percent sign, no space)",
+        "critical": true
+      },
+      {
+        "assertion_id": "marketing-over-budget",
+        "text": "Marketing row shows variance=2500 and variance_pct=25.0%",
+        "critical": false
+      },
+      {
+        "assertion_id": "engineering-under-budget",
+        "text": "Engineering row shows variance=-2000 and variance_pct=-4.0%",
+        "critical": false
+      },
+      {
+        "assertion_id": "summary-has-top3",
+        "text": "summary.md lists the top 3 over-budget categories (Marketing, Sales, and one more)",
+        "critical": false
+      },
+      {
+        "assertion_id": "summary-has-totals",
+        "text": "summary.md includes a Totals section with Total Budget, Total Actual, Total Variance",
+        "critical": false
+      }
+    ],
+    "files": []
+  },
+  {
+    "id": 2,
+    "eval_id": "eval-2",
+    "prompt": "Can you compare our budget to actuals for last month? Some of our department names have commas in them. I need variance.csv and summary.md as output.\n\nHere is the data:\n\n```\ncategory,budget,actual\n\"Travel, domestic\",5000,6200\n\"Software, licenses\",12000,11500\nMarketing,10000,10800\n\"Office, supplies\",3000,2750\nEngineering,40000,38000\n```",
+    "expectations": [
+      {
+        "assertion_id": "variance-csv-exists",
+        "text": "variance.csv exists in the outputs directory",
+        "critical": true
+      },
+      {
+        "assertion_id": "summary-md-exists",
+        "text": "summary.md exists in the outputs directory",
+        "critical": true
+      },
+      {
+        "assertion_id": "quoted-category-preserved",
+        "text": "variance.csv contains a row with category 'Travel, domestic' (the comma inside the name is preserved, not treated as a column separator)",
+        "critical": true
+      },
+      {
+        "assertion_id": "travel-variance-correct",
+        "text": "The 'Travel, domestic' row has variance=1200 and variance_pct=24.0%",
+        "critical": false
+      },
+      {
+        "assertion_id": "row-count-correct",
+        "text": "variance.csv has exactly 5 data rows (one per category)",
+        "critical": true
+      },
+      {
+        "assertion_id": "top3-over-budget-in-summary",
+        "text": "summary.md lists Travel, domestic and Marketing as over-budget categories (they are the only two over budget)",
+        "critical": false
+      }
+    ],
+    "files": []
+  },
+  {
+    "id": 3,
+    "eval_id": "eval-3",
+    "prompt": "Hey, my finance team just sent over this CSV for the monthly spend review — can you do the variance analysis? It has some formatting quirks (thousands separators in the numbers) and there are blank lines at the end. I need variance.csv and summary.md.\n\n```\ncategory,budget,actual\n\"Marketing\",\"12,500.00\",\"15,000.00\"\n\"Engineering\",\"85,000.00\",\"82,500.00\"\n\"Office, supplies\",\"3,250.00\",\"4,100.00\"\n\"HR\",\"18,000.00\",\"17,500.00\"\n\"Sales\",\"45,000.00\",\"48,750.00\"\n\n\n```",
+    "expectations": [
+      {
+        "assertion_id": "variance-csv-exists",
+        "text": "variance.csv exists in the outputs directory",
+        "critical": true
+      },
+      {
+        "assertion_id": "summary-md-exists",
+        "text": "summary.md exists in the outputs directory",
+        "critical": true
+      },
+      {
+        "assertion_id": "thousands-separators-stripped",
+        "text": "variance.csv numeric columns contain plain numbers without thousands separators (e.g. 12500 not 12,500)",
+        "critical": true
+      },
+      {
+        "assertion_id": "row-count-correct",
+        "text": "variance.csv has exactly 5 data rows (blank trailing lines are ignored)",
+        "critical": true
+      },
+      {
+        "assertion_id": "marketing-variance-correct",
+        "text": "Marketing row shows budget=12500, actual=15000, variance=2500, variance_pct=20.0%",
+        "critical": false
+      },
+      {
+        "assertion_id": "office-supplies-quoted-comma",
+        "text": "variance.csv contains a row with category 'Office, supplies' (comma inside name preserved)",
+        "critical": true
+      },
+      {
+        "assertion_id": "top3-over-budget-correct",
+        "text": "summary.md top-3 over-budget list includes Marketing, Sales, and Office supplies (the three over-budget categories)",
+        "critical": false
+      }
+    ],
+    "files": []
+  }
+]

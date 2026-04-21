@@ -1,0 +1,6 @@
+category,budget,actual,variance,variance_pct
+Marketing,12500,15000,2500,20.0%
+Engineering,85000,82500,-2500,-2.9%
+"Office, supplies",3250,4100,850,26.2%
+HR,18000,17500,-500,-2.8%
+Sales,45000,48750,3750,8.3%

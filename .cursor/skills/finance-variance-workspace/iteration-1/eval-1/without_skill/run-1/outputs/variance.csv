@@ -1,0 +1,7 @@
+category,budget,actual,variance,variance_pct,status
+Marketing,10000,12500,-2500,-25.0%,Over Budget
+Engineering,50000,48000,2000,4.0%,Under Budget
+Sales,30000,31500,-1500,-5.0%,Over Budget
+HR,15000,14200,800,5.3%,Under Budget
+Operations,20000,19800,200,1.0%,Under Budget
+Total,125000,126000,-1000,-0.8%,Over Budget

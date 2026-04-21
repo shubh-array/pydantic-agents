@@ -1,0 +1,7 @@
+{
+  "skill_path": "/Users/sshukla/Desktop/src/pydantic-agents/.cursor/skills/finance-variance",
+  "evals_path": "/Users/sshukla/Desktop/src/pydantic-agents/.cursor/skills/finance-variance/evals/evals.json",
+  "baseline_type": "without_skill",
+  "runs_per_configuration": 1,
+  "notes": "Iteration 1: initial skill draft. Three eval cases: clean CSV, quoted commas, thousands separators + trailing blanks."
+}

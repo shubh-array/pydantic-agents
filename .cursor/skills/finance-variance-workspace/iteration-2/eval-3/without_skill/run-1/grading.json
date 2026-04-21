@@ -1,0 +1,63 @@
+{
+  "expectations": [
+    {
+      "assertion_id": "variance-csv-exists",
+      "text": "variance.csv exists",
+      "passed": true,
+      "evidence": "Found at iteration-2/eval-3/without_skill/run-1/outputs/variance.csv",
+      "critical": true
+    },
+    {
+      "assertion_id": "summary-md-exists",
+      "text": "summary.md exists",
+      "passed": true,
+      "evidence": "Found at iteration-2/eval-3/without_skill/run-1/outputs/summary.md",
+      "critical": true
+    },
+    {
+      "assertion_id": "thousands-separators-stripped",
+      "text": "numeric columns have no thousands separators",
+      "passed": true,
+      "evidence": "No commas in budget values",
+      "critical": true
+    },
+    {
+      "assertion_id": "row-count-correct",
+      "text": "variance.csv has 5 data rows (blanks ignored)",
+      "passed": false,
+      "evidence": "Row count: 6",
+      "critical": true
+    },
+    {
+      "assertion_id": "marketing-variance-correct",
+      "text": "Marketing variance=2500, pct=20.0%",
+      "passed": false,
+      "evidence": "Got variance=2500.00, pct=20.00%",
+      "critical": false
+    },
+    {
+      "assertion_id": "office-supplies-quoted-comma",
+      "text": "category 'Office, supplies' preserved with comma",
+      "passed": true,
+      "evidence": "Found: Office, supplies",
+      "critical": true
+    },
+    {
+      "assertion_id": "top3-over-budget-correct",
+      "text": "summary top-3 includes Marketing, Sales, Office",
+      "passed": true,
+      "evidence": "All three found in summary",
+      "critical": false
+    }
+  ],
+  "summary": {
+    "passed": 5,
+    "failed": 2,
+    "total": 7,
+    "pass_rate": 0.714
+  },
+  "eval_feedback": {
+    "suggestions": [],
+    "overall": "Programmatic grading."
+  }
+}

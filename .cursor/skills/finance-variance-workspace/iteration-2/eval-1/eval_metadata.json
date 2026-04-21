@@ -1,0 +1,47 @@
+{
+  "eval_id": "eval-1",
+  "skill_name": "finance-variance",
+  "prompt": "Here's our monthly budget vs. actuals for Q1. Please run a variance analysis and give me variance.csv and summary.md.\n\n```\ncategory,budget,actual\nMarketing,10000,12500\nEngineering,50000,48000\nSales,30000,31500\nHR,15000,14200\nOperations,20000,19800\n```",
+  "expectations": [
+    {
+      "assertion_id": "variance-csv-exists",
+      "text": "variance.csv exists in the outputs directory",
+      "critical": true
+    },
+    {
+      "assertion_id": "summary-md-exists",
+      "text": "summary.md exists in the outputs directory",
+      "critical": true
+    },
+    {
+      "assertion_id": "variance-csv-has-5-cols",
+      "text": "variance.csv has exactly the columns: category, budget, actual, variance, variance_pct",
+      "critical": true
+    },
+    {
+      "assertion_id": "variance-pct-format",
+      "text": "variance_pct values use the format like '25.0%' or '-4.0%' (one decimal, percent sign, no space)",
+      "critical": true
+    },
+    {
+      "assertion_id": "marketing-over-budget",
+      "text": "Marketing row shows variance=2500 and variance_pct=25.0%",
+      "critical": false
+    },
+    {
+      "assertion_id": "engineering-under-budget",
+      "text": "Engineering row shows variance=-2000 and variance_pct=-4.0%",
+      "critical": false
+    },
+    {
+      "assertion_id": "summary-has-top3",
+      "text": "summary.md lists the top 3 over-budget categories (Marketing, Sales, and one more)",
+      "critical": false
+    },
+    {
+      "assertion_id": "summary-has-totals",
+      "text": "summary.md includes a Totals section with Total Budget, Total Actual, Total Variance",
+      "critical": false
+    }
+  ]
+}

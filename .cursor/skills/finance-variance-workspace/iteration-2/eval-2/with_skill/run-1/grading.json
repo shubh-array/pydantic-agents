@@ -1,0 +1,56 @@
+{
+  "expectations": [
+    {
+      "assertion_id": "variance-csv-exists",
+      "text": "variance.csv exists",
+      "passed": true,
+      "evidence": "Found at iteration-2/eval-2/with_skill/run-1/outputs/variance.csv",
+      "critical": true
+    },
+    {
+      "assertion_id": "summary-md-exists",
+      "text": "summary.md exists",
+      "passed": true,
+      "evidence": "Found at iteration-2/eval-2/with_skill/run-1/outputs/summary.md",
+      "critical": true
+    },
+    {
+      "assertion_id": "quoted-category-preserved",
+      "text": "category 'Travel, domestic' preserved with comma inside",
+      "passed": true,
+      "evidence": "Found row: {'category': 'Travel, domestic', 'budget': '5000', 'actual': '6200', 'variance': '1200', 'variance_pct': '24.0%'}",
+      "critical": true
+    },
+    {
+      "assertion_id": "travel-variance-correct",
+      "text": "Travel, domestic variance=1200, pct=24.0%",
+      "passed": true,
+      "evidence": "variance=1200, pct=24.0%",
+      "critical": false
+    },
+    {
+      "assertion_id": "row-count-correct",
+      "text": "variance.csv has 5 data rows",
+      "passed": true,
+      "evidence": "Row count: 5",
+      "critical": true
+    },
+    {
+      "assertion_id": "top3-over-budget-in-summary",
+      "text": "summary.md includes Travel and Marketing as over-budget",
+      "passed": true,
+      "evidence": "Both found in summary",
+      "critical": false
+    }
+  ],
+  "summary": {
+    "passed": 6,
+    "failed": 0,
+    "total": 6,
+    "pass_rate": 1.0
+  },
+  "eval_feedback": {
+    "suggestions": [],
+    "overall": "Programmatic grading."
+  }
+}

@@ -1,0 +1,70 @@
+{
+  "expectations": [
+    {
+      "assertion_id": "variance-csv-exists",
+      "text": "variance.csv exists",
+      "passed": true,
+      "evidence": "Found at iteration-2/eval-1/with_skill/run-1/outputs/variance.csv",
+      "critical": true
+    },
+    {
+      "assertion_id": "summary-md-exists",
+      "text": "summary.md exists",
+      "passed": true,
+      "evidence": "Found at iteration-2/eval-1/with_skill/run-1/outputs/summary.md",
+      "critical": true
+    },
+    {
+      "assertion_id": "variance-csv-has-5-cols",
+      "text": "variance.csv has exactly category, budget, actual, variance, variance_pct",
+      "passed": true,
+      "evidence": "Columns: ['category', 'budget', 'actual', 'variance', 'variance_pct']",
+      "critical": true
+    },
+    {
+      "assertion_id": "variance-pct-format",
+      "text": "variance_pct uses format like '25.0%'",
+      "passed": true,
+      "evidence": "All values match pattern",
+      "critical": true
+    },
+    {
+      "assertion_id": "marketing-over-budget",
+      "text": "Marketing variance=2500 and variance_pct=25.0%",
+      "passed": true,
+      "evidence": "variance=2500, variance_pct=25.0%",
+      "critical": false
+    },
+    {
+      "assertion_id": "engineering-under-budget",
+      "text": "Engineering variance=-2000 and variance_pct=-4.0%",
+      "passed": true,
+      "evidence": "variance=-2000, variance_pct=-4.0%",
+      "critical": false
+    },
+    {
+      "assertion_id": "summary-has-top3",
+      "text": "summary.md lists over-budget categories",
+      "passed": true,
+      "evidence": "Marketing found in Top 3 section",
+      "critical": false
+    },
+    {
+      "assertion_id": "summary-has-totals",
+      "text": "summary.md has Totals section",
+      "passed": true,
+      "evidence": "All total rows found",
+      "critical": false
+    }
+  ],
+  "summary": {
+    "passed": 8,
+    "failed": 0,
+    "total": 8,
+    "pass_rate": 1.0
+  },
+  "eval_feedback": {
+    "suggestions": [],
+    "overall": "Programmatic grading."
+  }
+}

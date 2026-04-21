@@ -1,0 +1,7 @@
+category,budget,actual,variance,variance_pct
+"Travel, domestic",5000,6200,1200,24.00%
+"Software, licenses",12000,11500,-500,-4.17%
+Marketing,10000,10800,800,8.00%
+"Office, supplies",3000,2750,-250,-8.33%
+Engineering,40000,38000,-2000,-5.00%
+Total,70000,69250,-750,-1.07%

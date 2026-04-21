@@ -1,0 +1,7 @@
+category,budget,actual,variance,variance_pct,status
+Marketing,12500.00,15000.00,2500.00,20.00%,OVER
+Engineering,85000.00,82500.00,-2500.00,-2.94%,UNDER
+"Office, supplies",3250.00,4100.00,850.00,26.15%,OVER
+HR,18000.00,17500.00,-500.00,-2.78%,UNDER
+Sales,45000.00,48750.00,3750.00,8.33%,OVER
+TOTAL,163750.00,167850.00,4100.00,2.50%,OVER

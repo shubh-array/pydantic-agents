@@ -58,7 +58,7 @@ It does this by running two agents side by side on every eval: one **with** the 
 ├── eval-harness/
 │   ├── scripts/                # Phase C–D commands (run_eval, aggregate_benchmark, ...)
 │   └── viewer/                 # Phase E HTML viewer (live or --static)
-├── scripts/                    # Phase A, D', F commands (validate, gate, package)
+├── scripts/                    # Phase A, D', F commands (skill validate, gate, package)
 └── references/
     ├── execution-contract.md   # The phase→command map
     ├── evaluation.md           # What "dual run" means
@@ -149,6 +149,21 @@ Every artifact written by the harness is validated against a JSON Schema. If you
 This section is the real run that was used to validate this skill. Every JSON snippet and every number below was copied directly from `/tmp/cas-sim/finance-variance-workspace/`.
 
 **Goal.** Build a skill called `finance-variance` that, given a CSV of `category,budget,actual`, produces a `variance.csv` with columns `category,budget,actual,variance,variance_pct`.
+
+### User Prompt
+```
+  Use the create-agent-skill meta-skill to build and evaluate a new skill called `finance-variance`.
+  **What it does:** Given a CSV of monthly budget vs. actuals (`category`, `budget`, `actual`), produce:
+  - `variance.csv` with `category, budget, actual, variance, variance_pct` (pct as `"-12.5%"`).
+  - `summary.md` with totals and the top 3 over-budget categories.
+  **When it should trigger:** budget vs actuals, variance analysis, monthly spend review, "compare budget to actual" on a CSV. Near-misses count.
+  **Edge cases to cover across iterations:**
+  1. Clean CSV.
+  2. Quoted categories containing commas (e.g. `"Travel, domestic"`).
+  3. Numeric values with thousands separators (`"1,250.00"`) and trailing blank lines.
+  Place the skill at `.cursor/skills/finance-variance/` and the workspace at `.cursor/skills/finance-variance-workspace/`. Use the Cursor adapter. I'll
+  review outputs in the viewer between iterations.
+```
 
 **Setup.**
 

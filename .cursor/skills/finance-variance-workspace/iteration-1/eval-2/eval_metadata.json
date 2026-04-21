@@ -1,0 +1,37 @@
+{
+  "eval_id": "eval-2",
+  "skill_name": "finance-variance",
+  "prompt": "Can you compare our budget to actuals for last month? Some of our department names have commas in them. I need variance.csv and summary.md as output.\n\nHere is the data:\n\n```\ncategory,budget,actual\n\"Travel, domestic\",5000,6200\n\"Software, licenses\",12000,11500\nMarketing,10000,10800\n\"Office, supplies\",3000,2750\nEngineering,40000,38000\n```",
+  "expectations": [
+    {
+      "assertion_id": "variance-csv-exists",
+      "text": "variance.csv exists in the outputs directory",
+      "critical": true
+    },
+    {
+      "assertion_id": "summary-md-exists",
+      "text": "summary.md exists in the outputs directory",
+      "critical": true
+    },
+    {
+      "assertion_id": "quoted-category-preserved",
+      "text": "variance.csv contains a row with category 'Travel, domestic' (the comma inside the name is preserved, not treated as a column separator)",
+      "critical": true
+    },
+    {
+      "assertion_id": "travel-variance-correct",
+      "text": "The 'Travel, domestic' row has variance=1200 and variance_pct=24.0%",
+      "critical": false
+    },
+    {
+      "assertion_id": "row-count-correct",
+      "text": "variance.csv has exactly 5 data rows (one per category)",
+      "critical": true
+    },
+    {
+      "assertion_id": "top3-over-budget-in-summary",
+      "text": "summary.md lists Travel, domestic and Marketing as over-budget categories (they are the only two over budget)",
+      "critical": false
+    }
+  ]
+}

@@ -1,0 +1,545 @@
+{
+  "metadata": {
+    "skill_name": "finance-variance",
+    "skill_path": "<path/to/skill>",
+    "executor_model": "<model-name>",
+    "analyzer_model": "<model-name>",
+    "timestamp": "2026-04-21T21:17:21Z",
+    "evals_run": [
+      "eval-1",
+      "eval-2",
+      "eval-3"
+    ],
+    "runs_per_configuration": 1
+  },
+  "runs": [
+    {
+      "eval_id": "eval-1",
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 8,
+        "failed": 0,
+        "total": 8,
+        "time_seconds": 21.242,
+        "tokens": 1859,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "assertion_id": "variance-csv-exists",
+          "text": "variance.csv exists",
+          "passed": true,
+          "evidence": "Found at iteration-1/eval-1/with_skill/run-1/outputs/variance.csv",
+          "critical": true
+        },
+        {
+          "assertion_id": "summary-md-exists",
+          "text": "summary.md exists",
+          "passed": true,
+          "evidence": "Found at iteration-1/eval-1/with_skill/run-1/outputs/summary.md",
+          "critical": true
+        },
+        {
+          "assertion_id": "variance-csv-has-5-cols",
+          "text": "variance.csv has exactly category, budget, actual, variance, variance_pct",
+          "passed": true,
+          "evidence": "Columns: ['category', 'budget', 'actual', 'variance', 'variance_pct']",
+          "critical": true
+        },
+        {
+          "assertion_id": "variance-pct-format",
+          "text": "variance_pct uses format like '25.0%'",
+          "passed": true,
+          "evidence": "All values match pattern",
+          "critical": true
+        },
+        {
+          "assertion_id": "marketing-over-budget",
+          "text": "Marketing variance=2500 and variance_pct=25.0%",
+          "passed": true,
+          "evidence": "variance=2500.0, variance_pct=25.0%",
+          "critical": false
+        },
+        {
+          "assertion_id": "engineering-under-budget",
+          "text": "Engineering variance=-2000 and variance_pct=-4.0%",
+          "passed": true,
+          "evidence": "variance=-2000.0, variance_pct=-4.0%",
+          "critical": false
+        },
+        {
+          "assertion_id": "summary-has-top3",
+          "text": "summary.md lists over-budget categories",
+          "passed": true,
+          "evidence": "Marketing found in Top 3 section",
+          "critical": false
+        },
+        {
+          "assertion_id": "summary-has-totals",
+          "text": "summary.md has Totals section",
+          "passed": true,
+          "evidence": "All total rows found",
+          "critical": false
+        }
+      ],
+      "expectation_summary": {
+        "assertion_ids": [
+          "variance-csv-exists",
+          "summary-md-exists",
+          "variance-csv-has-5-cols",
+          "variance-pct-format",
+          "marketing-over-budget",
+          "engineering-under-budget",
+          "summary-has-top3",
+          "summary-has-totals"
+        ],
+        "critical_total": 4,
+        "critical_failed": 0
+      },
+      "notes": []
+    },
+    {
+      "eval_id": "eval-2",
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 6,
+        "failed": 0,
+        "total": 6,
+        "time_seconds": 20.209,
+        "tokens": 1845,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "assertion_id": "variance-csv-exists",
+          "text": "variance.csv exists",
+          "passed": true,
+          "evidence": "Found at iteration-1/eval-2/with_skill/run-1/outputs/variance.csv",
+          "critical": true
+        },
+        {
+          "assertion_id": "summary-md-exists",
+          "text": "summary.md exists",
+          "passed": true,
+          "evidence": "Found at iteration-1/eval-2/with_skill/run-1/outputs/summary.md",
+          "critical": true
+        },
+        {
+          "assertion_id": "quoted-category-preserved",
+          "text": "category 'Travel, domestic' preserved with comma inside",
+          "passed": true,
+          "evidence": "Found row: {'category': 'Travel, domestic', 'budget': '5000.0', 'actual': '6200.0', 'variance': '1200.0', 'variance_pct': '24.0%'}",
+          "critical": true
+        },
+        {
+          "assertion_id": "travel-variance-correct",
+          "text": "Travel, domestic variance=1200, pct=24.0%",
+          "passed": true,
+          "evidence": "variance=1200.0, pct=24.0%",
+          "critical": false
+        },
+        {
+          "assertion_id": "row-count-correct",
+          "text": "variance.csv has 5 data rows",
+          "passed": true,
+          "evidence": "Row count: 5",
+          "critical": true
+        },
+        {
+          "assertion_id": "top3-over-budget-in-summary",
+          "text": "summary.md includes Travel and Marketing as over-budget",
+          "passed": true,
+          "evidence": "Both found in summary",
+          "critical": false
+        }
+      ],
+      "expectation_summary": {
+        "assertion_ids": [
+          "variance-csv-exists",
+          "summary-md-exists",
+          "quoted-category-preserved",
+          "travel-variance-correct",
+          "row-count-correct",
+          "top3-over-budget-in-summary"
+        ],
+        "critical_total": 4,
+        "critical_failed": 0
+      },
+      "notes": []
+    },
+    {
+      "eval_id": "eval-3",
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 7,
+        "failed": 0,
+        "total": 7,
+        "time_seconds": 23.701,
+        "tokens": 1873,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "assertion_id": "variance-csv-exists",
+          "text": "variance.csv exists",
+          "passed": true,
+          "evidence": "Found at iteration-1/eval-3/with_skill/run-1/outputs/variance.csv",
+          "critical": true
+        },
+        {
+          "assertion_id": "summary-md-exists",
+          "text": "summary.md exists",
+          "passed": true,
+          "evidence": "Found at iteration-1/eval-3/with_skill/run-1/outputs/summary.md",
+          "critical": true
+        },
+        {
+          "assertion_id": "thousands-separators-stripped",
+          "text": "numeric columns have no thousands separators",
+          "passed": true,
+          "evidence": "No commas in budget values",
+          "critical": true
+        },
+        {
+          "assertion_id": "row-count-correct",
+          "text": "variance.csv has 5 data rows (blanks ignored)",
+          "passed": true,
+          "evidence": "Row count: 5",
+          "critical": true
+        },
+        {
+          "assertion_id": "marketing-variance-correct",
+          "text": "Marketing variance=2500, pct=20.0%",
+          "passed": true,
+          "evidence": "variance=2500.0, pct=20.0%",
+          "critical": false
+        },
+        {
+          "assertion_id": "office-supplies-quoted-comma",
+          "text": "category 'Office, supplies' preserved with comma",
+          "passed": true,
+          "evidence": "Found: Office, supplies",
+          "critical": true
+        },
+        {
+          "assertion_id": "top3-over-budget-correct",
+          "text": "summary top-3 includes Marketing, Sales, Office",
+          "passed": true,
+          "evidence": "All three found in summary",
+          "critical": false
+        }
+      ],
+      "expectation_summary": {
+        "assertion_ids": [
+          "variance-csv-exists",
+          "summary-md-exists",
+          "thousands-separators-stripped",
+          "row-count-correct",
+          "marketing-variance-correct",
+          "office-supplies-quoted-comma",
+          "top3-over-budget-correct"
+        ],
+        "critical_total": 5,
+        "critical_failed": 0
+      },
+      "notes": []
+    },
+    {
+      "eval_id": "eval-1",
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.5,
+        "passed": 4,
+        "failed": 4,
+        "total": 8,
+        "time_seconds": 21.282,
+        "tokens": 1172,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "assertion_id": "variance-csv-exists",
+          "text": "variance.csv exists",
+          "passed": true,
+          "evidence": "Found at iteration-1/eval-1/without_skill/run-1/outputs/variance.csv",
+          "critical": true
+        },
+        {
+          "assertion_id": "summary-md-exists",
+          "text": "summary.md exists",
+          "passed": true,
+          "evidence": "Found at iteration-1/eval-1/without_skill/run-1/outputs/summary.md",
+          "critical": true
+        },
+        {
+          "assertion_id": "variance-csv-has-5-cols",
+          "text": "variance.csv has exactly category, budget, actual, variance, variance_pct",
+          "passed": true,
+          "evidence": "Columns: ['category', 'budget', 'actual', 'variance', 'variance_pct', 'status']",
+          "critical": true
+        },
+        {
+          "assertion_id": "variance-pct-format",
+          "text": "variance_pct uses format like '25.0%'",
+          "passed": true,
+          "evidence": "All values match pattern",
+          "critical": true
+        },
+        {
+          "assertion_id": "marketing-over-budget",
+          "text": "Marketing variance=2500 and variance_pct=25.0%",
+          "passed": false,
+          "evidence": "Got variance=-2500, variance_pct=-25.0%",
+          "critical": false
+        },
+        {
+          "assertion_id": "engineering-under-budget",
+          "text": "Engineering variance=-2000 and variance_pct=-4.0%",
+          "passed": false,
+          "evidence": "Got variance=2000, variance_pct=4.0%",
+          "critical": false
+        },
+        {
+          "assertion_id": "summary-has-top3",
+          "text": "summary.md lists over-budget categories",
+          "passed": false,
+          "evidence": "Missing expected content",
+          "critical": false
+        },
+        {
+          "assertion_id": "summary-has-totals",
+          "text": "summary.md has Totals section",
+          "passed": false,
+          "evidence": "Missing rows. Content: # Q1 Budget vs. Actuals \u2014 Variance Analysis\n\n## Overview\n\n| Metric | Value |\n|---|---|\n| Total Budget | $125,000 |\n| Total Actuals | $126,000 |\n| Net Variance | -$1,000 |\n| Net Variance % | -0.8% |\n| Overall Status | **Slightly Over Budget** |\n\n---\n\n## Category Breakdown\n\n| Category | Budget | Actua",
+          "critical": false
+        }
+      ],
+      "expectation_summary": {
+        "assertion_ids": [
+          "variance-csv-exists",
+          "summary-md-exists",
+          "variance-csv-has-5-cols",
+          "variance-pct-format",
+          "marketing-over-budget",
+          "engineering-under-budget",
+          "summary-has-top3",
+          "summary-has-totals"
+        ],
+        "critical_total": 4,
+        "critical_failed": 0
+      },
+      "notes": []
+    },
+    {
+      "eval_id": "eval-2",
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.667,
+        "passed": 4,
+        "failed": 2,
+        "total": 6,
+        "time_seconds": 18.694,
+        "tokens": 1192,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "assertion_id": "variance-csv-exists",
+          "text": "variance.csv exists",
+          "passed": true,
+          "evidence": "Found at iteration-1/eval-2/without_skill/run-1/outputs/variance.csv",
+          "critical": true
+        },
+        {
+          "assertion_id": "summary-md-exists",
+          "text": "summary.md exists",
+          "passed": true,
+          "evidence": "Found at iteration-1/eval-2/without_skill/run-1/outputs/summary.md",
+          "critical": true
+        },
+        {
+          "assertion_id": "quoted-category-preserved",
+          "text": "category 'Travel, domestic' preserved with comma inside",
+          "passed": true,
+          "evidence": "Found row: {'category': 'Travel, domestic', 'budget': '5000', 'actual': '6200', 'variance': '1200', 'variance_pct': '24.00%'}",
+          "critical": true
+        },
+        {
+          "assertion_id": "travel-variance-correct",
+          "text": "Travel, domestic variance=1200, pct=24.0%",
+          "passed": false,
+          "evidence": "Got variance=1200, pct=24.00%",
+          "critical": false
+        },
+        {
+          "assertion_id": "row-count-correct",
+          "text": "variance.csv has 5 data rows",
+          "passed": false,
+          "evidence": "Row count: 6",
+          "critical": true
+        },
+        {
+          "assertion_id": "top3-over-budget-in-summary",
+          "text": "summary.md includes Travel and Marketing as over-budget",
+          "passed": true,
+          "evidence": "Both found in summary",
+          "critical": false
+        }
+      ],
+      "expectation_summary": {
+        "assertion_ids": [
+          "variance-csv-exists",
+          "summary-md-exists",
+          "quoted-category-preserved",
+          "travel-variance-correct",
+          "row-count-correct",
+          "top3-over-budget-in-summary"
+        ],
+        "critical_total": 4,
+        "critical_failed": 1
+      },
+      "notes": []
+    },
+    {
+      "eval_id": "eval-3",
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.714,
+        "passed": 5,
+        "failed": 2,
+        "total": 7,
+        "time_seconds": 19.991,
+        "tokens": 1545,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "assertion_id": "variance-csv-exists",
+          "text": "variance.csv exists",
+          "passed": true,
+          "evidence": "Found at iteration-1/eval-3/without_skill/run-1/outputs/variance.csv",
+          "critical": true
+        },
+        {
+          "assertion_id": "summary-md-exists",
+          "text": "summary.md exists",
+          "passed": true,
+          "evidence": "Found at iteration-1/eval-3/without_skill/run-1/outputs/summary.md",
+          "critical": true
+        },
+        {
+          "assertion_id": "thousands-separators-stripped",
+          "text": "numeric columns have no thousands separators",
+          "passed": true,
+          "evidence": "No commas in budget values",
+          "critical": true
+        },
+        {
+          "assertion_id": "row-count-correct",
+          "text": "variance.csv has 5 data rows (blanks ignored)",
+          "passed": false,
+          "evidence": "Row count: 6",
+          "critical": true
+        },
+        {
+          "assertion_id": "marketing-variance-correct",
+          "text": "Marketing variance=2500, pct=20.0%",
+          "passed": false,
+          "evidence": "Got variance=2500.00, pct=20.00%",
+          "critical": false
+        },
+        {
+          "assertion_id": "office-supplies-quoted-comma",
+          "text": "category 'Office, supplies' preserved with comma",
+          "passed": true,
+          "evidence": "Found: Office, supplies",
+          "critical": true
+        },
+        {
+          "assertion_id": "top3-over-budget-correct",
+          "text": "summary top-3 includes Marketing, Sales, Office",
+          "passed": true,
+          "evidence": "All three found in summary",
+          "critical": false
+        }
+      ],
+      "expectation_summary": {
+        "assertion_ids": [
+          "variance-csv-exists",
+          "summary-md-exists",
+          "thousands-separators-stripped",
+          "row-count-correct",
+          "marketing-variance-correct",
+          "office-supplies-quoted-comma",
+          "top3-over-budget-correct"
+        ],
+        "critical_total": 5,
+        "critical_failed": 1
+      },
+      "notes": []
+    }
+  ],
+  "run_summary": {
+    "with_skill": {
+      "pass_rate": {
+        "mean": 1.0,
+        "stddev": 0.0,
+        "min": 1.0,
+        "max": 1.0
+      },
+      "time_seconds": {
+        "mean": 21.7173,
+        "stddev": 1.7939,
+        "min": 20.209,
+        "max": 23.701
+      },
+      "tokens": {
+        "mean": 1859.0,
+        "stddev": 14.0,
+        "min": 1845.0,
+        "max": 1873.0
+      }
+    },
+    "without_skill": {
+      "pass_rate": {
+        "mean": 0.627,
+        "stddev": 0.1125,
+        "min": 0.5,
+        "max": 0.714
+      },
+      "time_seconds": {
+        "mean": 19.989,
+        "stddev": 1.294,
+        "min": 18.694,
+        "max": 21.282
+      },
+      "tokens": {
+        "mean": 1303.0,
+        "stddev": 209.8166,
+        "min": 1172.0,
+        "max": 1545.0
+      }
+    },
+    "delta": {
+      "pass_rate": "+0.37",
+      "time_seconds": "+1.7",
+      "tokens": "+556"
+    }
+  },
+  "notes": []
+}
