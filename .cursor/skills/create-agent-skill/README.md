@@ -22,7 +22,9 @@ Everything shown below is the **real output** of a simulated run against the Cur
    2. [Iteration 2 — expand the eval set](#iteration-2--expand-the-eval-set)
    3. [Iteration 3 — improve the body, compare against `old_skill`](#iteration-3--improve-the-body-compare-against-old_skill)
 6. [Defaults and policy](#defaults-and-policy)
-7. [Troubleshooting](#troubleshooting)
+7. [Known gaps and roadmap (TODOs)](#known-gaps-and-roadmap-todos)
+8. [Runs vs iterations (FAQ)](#runs-vs-iterations-faq)
+9. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -543,6 +545,78 @@ $ uv run python scripts/package_skill.py /tmp/cas-sim/finance-variance /tmp/cas-
   ```
 - **Active adapter** (`config/active_agent`): single line, currently `cursor`. Switch to `claude_code` to run the same harness against Claude Code with no other change.
 - **Skill isolation**: enforced by `{{SKILL_CONTENT}}` substitution in `agents/executor.md`. If you write a custom `agent_prompt`, it **must** include this placeholder or isolation is lost.
+
+---
+
+## Known gaps and roadmap (TODOs)
+
+These are concrete defects and thin spots surfaced by running the full workflow end-to-end against `finance-variance` (see `.cursor/skills/finance-variance-workspace/`). Each item is scoped small enough to land on its own PR and has a rationale so a future maintainer can tell whether it's still relevant. Priorities: **P1** = correctness/gate blocker, **P2** = loop fidelity, **P3** = polish.
+
+### P1 — Correctness and gate blockers
+
+- [ ] **Validate `feedback.json` inside the iteration gate.** In the last simulation, `iteration-2/feedback.json` was saved with `status: "in_progress"` and `reviews: []` even though the user clicked **Submit All Reviews**. The value fails `feedback.schema.json` (`enum: ["draft","complete"]`), but `scripts/check_iteration.py` doesn't read the file at all — only `check_promotion.py` does, and only by re-reading `status`. Wire feedback schema validation into `check_iteration.py` and fail fast. *Why*: a mis-submitted review is invisible today and silently blocks Phase F later.
+- [ ] **Debug the viewer's "Submit All Reviews" persistence.** Iteration-2 had the user click submit with one populated eval and one empty eval; the resulting file has an empty `reviews[]` array. The viewer opened in the browser, so `generate_review.py` ran — but the submit handler didn't commit either the populated or the empty review. Needs reproduction in `eval-harness/viewer/` (likely a stale `fetch` handler or a write-path bug against the workspace on disk).
+- [ ] **Investigate viewer `run_id` attribution for free-text feedback.** Iter-1's `feedback.json` contains `{"run_id": "eval-3-without_skill-run-1", "feedback": "Looks great, seems to be working well"}`, but the user reports they entered that text while viewing **eval-1**. Either the textarea auto-saves against the last-focused run card rather than the currently-rendered one, or the write is racing a navigation event. Either way the feedback is attached to the wrong run and will mislead the improvement phase. Add a visible "saving to: eval-X/<side>/run-Y" indicator next to the textarea as part of the fix.
+- [ ] **Populate `benchmark.json.metadata` from the live adapter context.** Both iterations shipped `skill_path: "<path/to/skill>"` and `executor_model: "<model-name>"` as literal placeholder strings. `aggregate_benchmark.py` needs to resolve these from (a) the `iteration.json` paths, (b) the adapter's reported model, (c) git HEAD if available. Benchmarks without provenance aren't reproducible.
+- [ ] **Tighten the grader assertions that are subset/substring-based.** In `finance-variance-workspace/grade_iteration.py`, `variance-csv-has-5-cols` uses `expected_cols.issubset(...)` — so the without_skill baseline's 6-column output (adds `status`) passes an "exactly 5 columns" check. `top3-over-budget-in-summary` is similarly a substring scan. The fix isn't in the meta-skill itself but the lesson is: **`agents/grader.md` should call out "exact set vs subset" and "positional presence in a section vs document-wide substring" as common pitfalls**, with worked examples.
+
+### P2 — Loop fidelity
+
+- [ ] **Enforce an iteration close-out protocol.** In the simulation the user opted out of iteration 3 after seeing a 100% with_skill pass rate — that's fine by policy ("until satisfied, feedback uniformly positive, or progress stalls"), but the agent left `iteration-2/feedback.json` in `status: "in_progress"` instead of marking it `complete`. When the user says "no more iterations", the skill should: (1) set feedback `status: "complete"`, (2) run the promotion gate, (3) offer description optimization and packaging as explicit next steps before ending the session. Right now step (3) is implicit and gets forgotten.
+- [ ] **Snapshot discipline for `old_skill` comparisons.** `iteration-1-snapshot/` was created but is byte-identical to the current SKILL.md (`diff` returns empty), meaning it was copied **after** the iter-2 edit — and `iteration-2/iteration.json` still uses `baseline_type: "without_skill"`, so the snapshot is unreferenced. The meta-skill should either (a) automate the snapshot (copy into `iteration-N-snapshot/` immediately before edits, and set `baseline_type: "old_skill"` + `old_skill_path` in the next iteration's manifest), or (b) loudly refuse to proceed when the "snapshot before editing" step is skipped. The more informative comparison for iteration 2 would have been *old skill vs new skill*, not *skill vs no-skill*.
+- [ ] **Require new assertions when the skill body changes.** Iter-2 shipped a real fix (`_fmt_num` emits `10000` not `10000.0`, matching the SKILL.md contract that numeric columns are plain numbers), but no assertion tested for it — so the benchmark was identical between iterations (100/62.7, delta +0.37) even though the output files genuinely improved. The skill should prompt: *"This iteration changed [list of files / patterns]. Add at least one assertion that would have failed on the previous iteration and passes on this one, or explicitly acknowledge the change is unmeasured."*
+- [ ] **Analyst pass not happening.** `agents/analyzer.md` describes a pattern-finder (non-discriminating checks, flaky evals, time/token trade-offs) but nothing in the loop actually invokes it; the simulation produced no `analysis.md` or analyst commentary. Either drop the phase from SKILL.md or wire it in as a callable step after aggregation.
+- [ ] **Description optimization phase never offered.** `run_loop.py` is fully built and tested, but the skill finished without authoring a trigger eval or running the loop. When the body-iteration loop ends, the meta-skill should explicitly transition to "Step: description optimization" instead of ending silently.
+- [ ] **Packaging phase never offered.** Same as above for `scripts/package_skill.py`. After promotion passes, offer to produce a `.skill` artifact.
+
+### P3 — Polish and progressive disclosure
+
+- [ ] **Stop duplicating code between SKILL.md and `scripts/`.** `finance-variance/SKILL.md` inlines the entire 85-line `compute_variance.py`, and `scripts/compute_variance.py` holds a near-duplicate. Every with_skill run re-ships the full script in the prompt (~1800 tokens). The progressive-disclosure pattern from our own SKILL.md says bundled scripts "can execute without loading" — prefer a one-liner like *"Run `scripts/compute_variance.py` (bundled with the skill)"* and keep the body focused on intent, formats, edge cases. Update the author-side guidance in `.cursor/skills/create-agent-skill/SKILL.md` §"Progressive disclosure" with a worked before/after.
+- [ ] **Aggregator under-reports `tool_calls`.** Every row in both iterations' `benchmark.json` has `tool_calls: 0`, but the transcripts for each run clearly show 3+ tool calls (write `budget.csv`, write `compute_variance.py`, run `python3 …`). `aggregate_benchmark.py`'s Cursor-adapter parser isn't counting `tool_call.subtype="started"` events from `transcript.jsonl`. Low-stakes for pass-rate math but it's a visible zero on every dashboard.
+- [ ] **Always produce a `--static` HTML export alongside the live viewer.** The browser viewer opened fine, but if a reviewer loses their session or wants to share a snapshot, there's nothing on disk. Change `generate_review.py` to emit `iteration-N/review.html` by default, and let `--no-static` opt out.
+- [ ] **Name `runs_per_configuration` explicitly in the iteration manifest template.** The schema allows it and the code reads it, but the minimal manifest example in SKILL.md omits it, and every simulation so far ran with the default of 1. Add `"runs_per_configuration": 1` to the example and a one-line comment explaining when to raise it (flaky skills, high-variance prompts).
+
+---
+
+## Runs vs iterations (FAQ)
+
+This comes up every time. Three nested loops, from innermost to outermost:
+
+1. **Run** — *one execution of one eval on one side.* A unit of work the adapter performs. Its artifacts live in `iteration-N/<eval-id>/<side>/run-{r}/` and are exactly: `outputs/`, `transcript.jsonl`, `timing.json`, `grading.json`. The integer `r` starts at 1 and goes up to `runs_per_configuration`.
+
+2. **Configuration** — *a (side, eval) pair.* Example: `(eval-2, with_skill)`. For each configuration you do `runs_per_configuration` runs. With the default value `1`, "configuration" and "run" are indistinguishable on disk. The word exists because the benchmark aggregates *across runs within a configuration* (min/max/stddev) before aggregating across configurations.
+
+3. **Iteration** — *one full pass of the eval set over the whole candidate/baseline pair, producing one `benchmark.json`.* Living in `iteration-N/`. You cut a new iteration whenever you change the skill body or the eval set and want a fresh measurement.
+
+### Why the simulation only had one run per eval
+
+`iteration.json` in both iterations of the finance-variance simulation contained:
+
+```json
+"runs_per_configuration": 1
+```
+
+So for each of 3 evals × 2 sides (`with_skill`, `without_skill`) = **6 runs per iteration**. Two iterations produced 12 runs total, which matches `find .../finance-variance-workspace -type d -name 'run-*' | wc -l` = 12.
+
+### When to raise `runs_per_configuration` above 1
+
+Agents are non-deterministic. A single run can hide:
+
+- **Flakiness** — the model occasionally writes a 6-column CSV instead of 5, or varies the decimal count.
+- **Variance sensitivity** — timing and token numbers are noisy from 1 sample; 5 samples give you a usable stddev.
+- **Edge behavior in baselines** — without_skill is especially variable because there's no pinned recipe.
+
+Practical heuristics:
+
+- `1` — **default**. Use when the skill is deterministic (wraps a script) and you're iterating fast on the body.
+- `3` — first scale-up when you want to see stddev in `benchmark.json`. The aggregator's `stddev` fields become meaningful.
+- `5–10` — use when debugging a specific flaky eval, or when the promotion gate is on a knife's edge and you need a confidence interval on the lift.
+
+You raise it per-iteration in `iteration.json`; you don't have to change it globally. The filesystem layout simply adds `run-2/`, `run-3/`, …; the aggregator handles the rest.
+
+### The distinction in one line
+
+> A **run** is "the adapter ran the agent once." A **configuration** is "this skill variant, this eval, all its repeated runs." An **iteration** is "one version of the skill measured against the whole eval set."
 
 ## Troubleshooting
 
