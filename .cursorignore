@@ -5,4 +5,3 @@ __pycache__/
 .venv/
 .ruff_cache/
 .DS_Store
-.cursor/skills/skill-creator/

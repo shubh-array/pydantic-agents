@@ -1,6 +1,5 @@
 .worktrees/
 
-.array/
 tests/hook_matrix/out/*.jsonl
 tests/hook_matrix/out/live_e2e_report.json
 docs/superpowers/
@@ -14,4 +13,4 @@ __pycache__/
 # macOS
 .DS_Store
 
-.cursor/skills/skill-creator/
+tmp/skill-creator/
