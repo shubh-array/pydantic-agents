@@ -1,134 +1,59 @@
-# pydantic-agents - Cursor Hook Framework
+# pydantic-agents POC
 
-Security-focused Cursor hooks for shell policy enforcement and analytics logging.
+The goal of this POC is to explore how the existing coding agentic infrastructure within Array (PBA) can be leveraged to build a foundational framework for building new PBA customer facing agents and review existing PBA agents in a reliable, deterministic, governed and secure fashion. The current infrastructure consists of Cursor coding agents (local - CLI, IDE and remote - Cloud agents) for agent code development, and the agents themseleves are built using Pydantic AI SDK libraries in python and are deployed in Azure containers.
 
-## Overview
+## Research Questions
 
-This project configures Cursor hooks in `.cursor/hooks.json` and routes them to Python handlers in
-`.cursor/hooks/` (plus one built-in prompt gate entry). The handlers normalize hook data and append
-analytics rows to JSONL.
+### Cursor Agent
+- Is cursor agent mature enough for scalable agentic development both locally and remote?
+- Does cursor support capabilities like hooks, mcps, skills, plugins that can enable building and distributing generic coding agent components that can be shared across the engineering team?
+- Does cursor hook framework sufficient lifecycle events which can hooked into for auditing and gating requirements for long-running coding sessions?
+- Does cursor support chaining hooks?
+- Does cursor hooks emit detailed event objects that can capture tool call info, blocking tool calls, detecting prompt injection, shell commands i/o, prompt compaction, token usage, etc. that can provide a holistic picture of an agent coding session to analyze, extract insights and troubleshoot the coding session themselves?
+- Is cursor metadata file system comprehensive enough to isolate and analyze cross session activities?
+- What are the discrepancies between cursor cli and cursor ide agents?
+- Does cursor administration support creating a private plugin marketplace such that agent components (skills, prompts, mcps, etc.) can be shared across the engineering team?
 
-Primary analytics destination:
+### Pydantic AI
 
-- `.array/analytics.jsonl` (default, under resolved workspace root)
-- Override with `CURSOR_HOOK_ANALYTICS_JSONL=/absolute/path/to/file.jsonl`
+- Does Pydantic AI SDK library expose low-level features such that we can build task-specific agent harness vs general purpose agent harness?
+- What models does it support?
+- Does the SDK support sandboxing tool execution and network policies?
+- Does the Pydantic ecosystem support evals for evaluating agent skills, prompts?
+- Does the Pydantic ecosystem support observability frameworks for tracking and debugging agent trajectories?
+- Does Pydantic have native support for orchestrating agents especially long-running agents?
 
-## Architecture
 
-1. Cursor emits hook events.
-2. `.cursor/hooks.json` routes events to Python scripts and one prompt-gate hook.
-3. Python handlers read JSON from stdin and emit hook responses on stdout.
-4. Handlers call `append_audit(...)` from `.cursor/hooks/lib/audit.py`.
-5. `append_audit(...)` writes one normalized analytics record per successful append attempt.
+### Agentic Product Development
 
-Decision behavior:
+- Can we build a meta agent skill `create-agent-skill` which can be used to create new agent skills with end-to-end evaluation pipeline (measure quantitaive, qualitative metrics) with LLM-as-a-jduge and evaluation-optimizer loops to improve skill body and description?
+- Can the meta agent skill `create-agent-skill` be coding agent agnostic such that it is compatible with multiple coding agents like cursor, claude code and more?
+- Can we use `create-agent-skill` to create the following agent skills:
+  1. **create-pba-agent**: Streamline a deterministic approach to creating new PBA agents and reviewing existing agents?
+  2. **pba-product-voice**: Agent skill that can embed Array Product voice and review & evaluate existing agents for product voice conformity,
+- Can `pba-product-voice` be converted to a system prompt and maintain the same quality?
 
-- `before_shell_gate.py` is the only script that can deny shell command execution.
-- The `beforeSubmitPrompt` prompt hook can deny prompt submission.
-- All other script hooks are audit/analytics-only and return allow/continue responses.
 
-## Hook Mapping
+## Todo
 
-Registered in `.cursor/hooks.json`:
+**1. Cursor Hook Framework**
+- Create and chain hooks for multiple lifecycle events
+- Block dangerous commands
+- Generate audit logs with info - shell commands, prompt injection attacks, token usage, etc.
+- Dashboard to view the audit log
 
-- `sessionStart` -> `session_audit.py --phase start`
-- `sessionEnd` -> `session_audit.py --phase end`
-- `beforeShellExecution` -> `before_shell_gate.py`
-- `beforeSubmitPrompt` -> `before_prompt_submit_audit.py` (`matcher: UserPromptSubmit`)
-- `beforeSubmitPrompt` -> prompt gate (`type: prompt`, `matcher: UserPromptSubmit`)
-- `preToolUse` (`matcher: Task`) -> `pre_tool_task_audit.py`
-- `subagentStart` -> `subagent_audit.py --event subagentStart`
-- `subagentStop` -> `subagent_audit.py --event subagentStop`
 
-Each configured hook entry currently sets `failClosed: true`.
+**2. Meta Agent Skill - create-agent-skill**
+- Adapter based harness and compatible with coding agents like cursor (default) and claude code.
+- Isolate core business logic for creating and evaluating agent skill and agent specific config.
+- Evaluation pipeline for improving agent skill content and trigger description
 
-## Shell Policy
+**3. PBA Agent with a default system prompt**
+- Design a standardized System prompt with distinct sections (separated by XML tags)
 
-Shell policy is loaded from `.cursor/hooks/policy.json` using `lib/policy_config.py`.
-If policy parsing/validation fails, `before_shell_gate.py` denies execution (fail-closed behavior).
+**4. Agent Skill - create-pba-agent**
+- Agent Skill to create a standardized & governed PBA agent for product
 
-Current policy evaluation in `lib/shell_policy.py` includes:
 
-- deny recursive+force `rm` usage (including clustered flags like `-rf`)
-- deny `git push` arguments that target protected main refs/patterns
-- unwrap common wrappers (`sudo`, `doas`, `env`, `command`, `nice`, `nohup`, `timeout`)
-- recurse into nested `sh -c` / `bash -c` / `zsh -c` payloads
-- deny malformed shell segments that fail `shlex` parsing
 
-## Logging Contract
 
-`append_audit(...)` writes analytics-style JSON rows with stable keys, including:
-
-- core identifiers: `ts`, `script_id`, `event_type`
-- run context: `conversation_id`, `generation_id`, `session_id`, `model`
-- policy fields: `policy_outcome`, `policy_reason`, `policy_trace`, `deny_reason`
-- event fields: `command_sample`, `skill_signal`, `duration_ms`, `shell_fence_count`, etc.
-
-Write behavior from `lib/audit.py`:
-
-- append-only JSONL writes
-- best-effort `flock` on Unix (write still proceeds if lock acquisition fails)
-- file mode enforced to `0600` after writes
-- parent directory auto-created when missing
-
-Note on failures:
-
-- Hook scripts still emit valid stdout JSON on parse/config/audit failures.
-- If `before_shell_gate.py` would allow a command but audit writing fails, it flips to deny
-  (explicit fail-closed for shell execution).
-
-## Testing
-
-The only maintained automated harness in this repository is:
-
-- `tests/hook_matrix/live_e2e_report.py`
-
-It runs a real `agent -p` probe and verifies analytics output contains:
-
-- a `session_audit:start` row
-- a `session_audit:end` row
-- a denied shell row with non-empty `deny_reason`
-
-Run:
-
-```bash
-uv run --group dev python tests/hook_matrix/live_e2e_report.py
-```
-
-Outputs:
-
-- `tests/hook_matrix/out/e2e_analytics.jsonl`
-- `tests/hook_matrix/out/live_e2e_report.json`
-
-## Repository Layout
-
-```text
-pydantic-agents/
-|- .cursor/
-|  |- hooks.json
-|  `- hooks/
-|     |- before_shell_gate.py
-|     |- before_prompt_submit_audit.py
-|     |- pre_tool_task_audit.py
-|     |- session_audit.py
-|     |- subagent_audit.py
-|     |- policy.json
-|     `- lib/
-|        |- __init__.py
-|        |- audit.py
-|        |- io.py
-|        |- policy_config.py
-|        `- shell_policy.py
-|- .array/
-|  `- analytics.jsonl
-|- tests/
-|  `- hook_matrix/
-|     |- live_e2e_report.py
-|     `- out/
-|- docs/
-|  `- superpowers/
-|     `- specs/
-|- dashboard.html
-|- pyproject.toml
-`- uv.lock
-```

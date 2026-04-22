@@ -338,13 +338,16 @@ This task is pretty important (we are trying to create billions a year in econom
 
 After improving the skill:
 
-1. Apply updates to the skill under test.
-2. Re-run all cases into a **new** **`iteration-(N+1)/`**, including baselines (for a new skill, baseline stays **without_skill**).
-3. Open the viewer with **`--previous-workspace`** pointing at the prior iteration when applicable.
-4. Wait for user review and new feedback.
-5. Repeat until the user is satisfied, feedback is uniformly positive, or progress stalls.
+1. **Before making any edits**, snapshot the current skill directory to **`<workspace>/iteration-N-snapshot/`**. This preserves the exact version that produced the current iteration's results and can serve as an `old_skill` baseline later.
+2. Apply updates to the skill under test.
+3. Re-run all cases into a **new** **`iteration-(N+1)/`**, including baselines (for a new skill, baseline stays **without_skill**).
+4. Open the viewer with **`--previous-workspace`** pointing at the prior iteration when applicable.
+5. Wait for user review and new feedback.
+6. Repeat until the user is satisfied, feedback is uniformly positive, or progress stalls.
 
 **Default cap: 3 iterations.** By default the harness runs at most **three** iterations for both body and description optimization. Three is usually enough to get past the obvious wins and surface diminishing returns; going further tends to overfit a small eval set. If you need more, bump `--max-iterations` explicitly and justify it with the benchmark trend.
+
+**When the user declines further iterations or the promotion gate passes**, proceed to the "Description optimization" section below. Always offer this step — even when the body is stable, the frontmatter description may under-trigger or over-trigger.
 
 ---
 
