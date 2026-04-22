@@ -1,0 +1,8 @@
+{
+  "skill_path": "/Users/sshukla/Desktop/src/pydantic-agents/.cursor/skills/csv-dedup",
+  "evals_path": "/Users/sshukla/Desktop/src/pydantic-agents/.cursor/skills/csv-dedup/evals/evals.json",
+  "baseline_type": "without_skill",
+  "runs_per_configuration": 1,
+  "iteration": 1,
+  "notes": "Initial iteration — candidate skill vs no-skill baseline. Three edge cases: plain duplicates, whitespace-trimmed duplicates, mixed-case headers with case-insensitive values."
+}

@@ -1,0 +1,37 @@
+{
+  "eval_id": "2",
+  "skill_name": "csv-dedup",
+  "prompt": "hey, this CSV has dupes but some cells have extra spaces around them \u2014 can you clean it up? i want the deduplicated version plus a report\n\n```\nName,Age,City\n  Alice ,30, New York\nBob,25,Chicago\nAlice,30,New York\n  Bob  ,25,Chicago\nCarol,35,  Boston\nCarol,35,Boston\n```\n\nWrite dedup.csv and dedup-report.md please.",
+  "expectations": [
+    {
+      "assertion_id": "dedup-csv-exists",
+      "text": "A file named dedup.csv exists in the outputs directory",
+      "critical": true
+    },
+    {
+      "assertion_id": "dedup-report-exists",
+      "text": "A file named dedup-report.md exists in the outputs directory",
+      "critical": true
+    },
+    {
+      "assertion_id": "whitespace-trimmed-dedup",
+      "text": "dedup.csv contains exactly 3 data rows \u2014 because whitespace-trimmed cells correctly identify the duplicates",
+      "critical": true
+    },
+    {
+      "assertion_id": "report-shows-3-removed",
+      "text": "dedup-report.md reports that exactly 3 duplicates were removed",
+      "critical": true
+    },
+    {
+      "assertion_id": "original-whitespace-preserved",
+      "text": "dedup.csv preserves the original cell values from the first occurrence \u2014 the first row of data should have '  Alice ' (with leading/trailing spaces) NOT 'Alice', because trimming is only for comparison, not for output",
+      "critical": true
+    },
+    {
+      "assertion_id": "removed-table-present",
+      "text": "dedup-report.md includes a table of removed rows with their original row numbers",
+      "critical": false
+    }
+  ]
+}

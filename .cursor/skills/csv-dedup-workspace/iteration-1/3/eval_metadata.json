@@ -1,0 +1,32 @@
+{
+  "eval_id": "3",
+  "skill_name": "csv-dedup",
+  "prompt": "My CSV export has mixed-case headers and the values are inconsistent case too \u2014 can you deduplicate it? Headers should stay exactly as they are. Produce dedup.csv and dedup-report.md.\n\n```\nName,EMAIL,City\nAlice,alice@example.com,Boston\nBob,bob@example.com,Seattle\nALICE,alice@example.com,BOSTON\nalice,ALICE@EXAMPLE.COM,boston\nBob,BOB@EXAMPLE.COM,Seattle\n```",
+  "expectations": [
+    {
+      "assertion_id": "dedup-csv-exists",
+      "text": "A file named dedup.csv exists in the outputs directory",
+      "critical": true
+    },
+    {
+      "assertion_id": "dedup-report-exists",
+      "text": "A file named dedup-report.md exists in the outputs directory",
+      "critical": true
+    },
+    {
+      "assertion_id": "case-insensitive-dedup",
+      "text": "dedup.csv contains exactly 2 data rows (Alice and Bob) \u2014 case-insensitive comparison on values means ALICE/alice/Alice are all the same, as are Bob/BOB",
+      "critical": true
+    },
+    {
+      "assertion_id": "report-shows-3-removed",
+      "text": "dedup-report.md reports that exactly 3 duplicates were removed",
+      "critical": true
+    },
+    {
+      "assertion_id": "headers-preserved-as-is",
+      "text": "dedup.csv preserves the original mixed-case headers: Name, EMAIL, City",
+      "critical": true
+    }
+  ]
+}

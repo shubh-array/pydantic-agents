@@ -1,0 +1,82 @@
+[
+  {
+    "query": "i have this csv export from salesforce and there are definitely duplicate entries in there — can you clean it up and remove the dupes? the file is at ~/downloads/contacts_export.csv",
+    "should_trigger": true
+  },
+  {
+    "query": "my CSV file has repeated rows, can you deduplicate it? here's the data:\n\nName,Email\nAlice,alice@co.com\nBob,bob@co.com\nAlice,alice@co.com",
+    "should_trigger": true
+  },
+  {
+    "query": "this csv has dupes — same customer appearing twice. can you strip out the duplicates and tell me how many you removed?",
+    "should_trigger": true
+  },
+  {
+    "query": "need to remove duplicate rows from a CSV before importing it into postgres — the file is data/users.csv. want a report of what got dropped",
+    "should_trigger": true
+  },
+  {
+    "query": "hey can you de-dupe my file? it's a csv export with some double entries that crept in from a bad merge last week",
+    "should_trigger": true
+  },
+  {
+    "query": "looking at customer_list.csv and i see the same email addresses appearing multiple times — deduplicate on all columns and give me a clean version plus a summary",
+    "should_trigger": true
+  },
+  {
+    "query": "we did a data migration and ended up with repeated records in the export. it's a csv, can you merge the duplicate records and generate a report of everything that was removed?",
+    "should_trigger": true
+  },
+  {
+    "query": "find all the duplicate rows in my CSV and remove them keeping the first occurrence. the CSV has headers Name, Email, Phone and some cells have extra whitespace",
+    "should_trigger": true
+  },
+  {
+    "query": "i exported all our leads to leads.csv but it's got the same rows appearing two or three times. can you strip the repeated ones out and produce a dedup report?",
+    "should_trigger": true
+  },
+  {
+    "query": "cleaning up a big CSV — want to get rid of exact duplicate rows. some cells might have extra spaces so take that into account when comparing. give me dedup.csv and a report",
+    "should_trigger": true
+  },
+  {
+    "query": "can you sort my CSV alphabetically by the last name column and write the result to sorted.csv?",
+    "should_trigger": false
+  },
+  {
+    "query": "i have a CSV with some blank/empty rows sprinkled throughout — can you remove all the empty rows and give me a clean file?",
+    "should_trigger": false
+  },
+  {
+    "query": "how do i find and remove duplicates in Excel using conditional formatting or the Remove Duplicates button? i'm on Excel 365",
+    "should_trigger": false
+  },
+  {
+    "query": "my CSV has inconsistent date formats — some rows have MM/DD/YYYY and others are YYYY-MM-DD. can you normalize them all to ISO format?",
+    "should_trigger": false
+  },
+  {
+    "query": "can you count how many times each email address appears in my CSV? i want to see which values are duplicated the most, but keep all rows",
+    "should_trigger": false
+  },
+  {
+    "query": "i need to merge two CSV files — combine customers_jan.csv and customers_feb.csv into one big file with all the rows from both",
+    "should_trigger": false
+  },
+  {
+    "query": "write me a SQL query to find and delete duplicate rows in a postgres table by email address, keeping the row with the lowest id",
+    "should_trigger": false
+  },
+  {
+    "query": "can you remove all rows from my CSV where the status column says 'inactive' or 'churned'? want to keep only active customers",
+    "should_trigger": false
+  },
+  {
+    "query": "my JSON file has duplicate objects in an array — same id appearing twice. can you deduplicate the array and write out a clean JSON?",
+    "should_trigger": false
+  },
+  {
+    "query": "i have a python list with duplicate strings: ['apple', 'banana', 'apple', 'cherry', 'banana']. what's the cleanest way to deduplicate it while preserving order?",
+    "should_trigger": false
+  }
+]

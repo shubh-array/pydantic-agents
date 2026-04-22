@@ -1,0 +1,52 @@
+{
+  "expectations": [
+    {
+      "assertion_id": "dedup-csv-exists",
+      "text": "A file named dedup.csv exists in the outputs directory",
+      "passed": true,
+      "evidence": "dedup.csv found at /Users/sshukla/Desktop/src/pydantic-agents/.cursor/skills/csv-dedup-workspace/iteration-1/3/without_skill/run-1/outputs/dedup.csv",
+      "critical": true
+    },
+    {
+      "assertion_id": "dedup-report-exists",
+      "text": "A file named dedup-report.md exists in the outputs directory",
+      "passed": true,
+      "evidence": "dedup-report.md found at /Users/sshukla/Desktop/src/pydantic-agents/.cursor/skills/csv-dedup-workspace/iteration-1/3/without_skill/run-1/outputs/dedup-report.md",
+      "critical": true
+    },
+    {
+      "assertion_id": "case-insensitive-dedup",
+      "text": "dedup.csv contains exactly 2 data rows (Alice and Bob) \u2014 case-insensitive comparison on values means ALICE/alice/Alice are all the same, as are Bob/BOB",
+      "passed": true,
+      "evidence": "dedup.csv has 2 data rows (expected 2 after case-insensitive dedup)",
+      "critical": true
+    },
+    {
+      "assertion_id": "report-shows-3-removed",
+      "text": "dedup-report.md reports that exactly 3 duplicates were removed",
+      "passed": true,
+      "evidence": "Report shows 3 duplicates removed (expected 3)",
+      "critical": true
+    },
+    {
+      "assertion_id": "headers-preserved-as-is",
+      "text": "dedup.csv preserves the original mixed-case headers: Name, EMAIL, City",
+      "passed": true,
+      "evidence": "Headers: ['Name', 'EMAIL', 'City'] (expected ['Name', 'EMAIL', 'City'])",
+      "critical": true
+    }
+  ],
+  "summary": {
+    "passed": 5,
+    "failed": 0,
+    "total": 5,
+    "pass_rate": 1.0
+  },
+  "eval_feedback": {
+    "suggestions": [],
+    "overall": "Evals look solid."
+  },
+  "timing": {
+    "executor_duration_seconds": 0
+  }
+}

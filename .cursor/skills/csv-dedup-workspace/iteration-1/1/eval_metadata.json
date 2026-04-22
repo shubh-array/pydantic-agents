@@ -1,0 +1,37 @@
+{
+  "eval_id": "1",
+  "skill_name": "csv-dedup",
+  "prompt": "I have a CSV file with some duplicate rows that I need to clean up. Can you deduplicate it and give me a report of what was removed?\n\nHere is the CSV content:\n\n```\nName,Age,City\nAlice,30,New York\nBob,25,Chicago\nAlice,30,New York\nCarol,35,Boston\nBob,25,Chicago\nDave,40,Seattle\n```\n\nPlease produce dedup.csv and dedup-report.md in the working directory.",
+  "expectations": [
+    {
+      "assertion_id": "dedup-csv-exists",
+      "text": "A file named dedup.csv exists in the outputs directory",
+      "critical": true
+    },
+    {
+      "assertion_id": "dedup-report-exists",
+      "text": "A file named dedup-report.md exists in the outputs directory",
+      "critical": true
+    },
+    {
+      "assertion_id": "correct-row-count",
+      "text": "dedup.csv contains exactly 4 data rows (header + 4 rows): Alice, Bob, Carol, Dave",
+      "critical": true
+    },
+    {
+      "assertion_id": "report-shows-2-removed",
+      "text": "dedup-report.md reports that exactly 2 duplicates were removed",
+      "critical": true
+    },
+    {
+      "assertion_id": "removed-table-present",
+      "text": "dedup-report.md includes a table listing the removed duplicate rows (row numbers and content)",
+      "critical": false
+    },
+    {
+      "assertion_id": "column-order-preserved",
+      "text": "dedup.csv preserves the original column order: Name, Age, City",
+      "critical": false
+    }
+  ]
+}

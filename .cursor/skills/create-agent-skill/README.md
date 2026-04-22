@@ -14,7 +14,8 @@ A agent-agnostic, meta-skill for **authoring, evaluating, and iteratively improv
    1. [Iteration 1 — baseline dual run](#iteration-1--baseline-dual-run)
    2. [Iteration 2 — re-run after skill body improvement](#iteration-2--re-run-after-skill-body-improvement)
 6. [Defaults and policy](#defaults-and-policy)
-7. [Troubleshooting](#troubleshooting)
+7. [End-to-end workflow: from intent to packaged skill](#end-to-end-workflow-from-intent-to-packaged-skill)
+8. [Practical considerations](#practical-considerations)
 
 ---
 
@@ -668,14 +669,254 @@ $ uv run python scripts/package_skill.py \
 - **Active adapter** (`config/active_agent`): single line, currently `cursor`. Switch to `claude_code` to run the same harness against Claude Code with no other change.
 - **Skill isolation**: enforced by `{{SKILL_CONTENT}}` substitution in `agents/executor.md`. If you write a custom `agent_prompt`, it **must** include this placeholder or isolation is lost.
 
-## Troubleshooting
+## End-to-end workflow: from intent to packaged skill
 
-| Symptom                                                                         | Likely cause                                                         |
-|---------------------------------------------------------------------------------|----------------------------------------------------------------------|
-| `iteration.json schema error: …`                                                | Missing a required field (e.g. `old_skill_path` with `old_skill`).   |
-| `missing iteration-N/benchmark.json`                                            | You skipped Phase D or it failed. Re-run `aggregate_benchmark.py`.   |
-| `benchmark.json schema: None is not of type 'integer'` (on older revisions)     | You're on a pre-fix schema. Pull the latest — `tokens` now allows `null`. |
-| `assertion_id mismatch in fv-X: with_skill#1=[…] vs without_skill#1=[…]`        | Your grader emitted different assertion sets per side. Always emit the full set, with `passed=false` when the artifact is missing. |
-| `ModuleNotFoundError: No module named 'scripts'` from `package_skill.py`        | Old revision; fixed by the `sys.path` bootstrap at the top of the script. |
-| `without_skill` suspiciously scores the same as `with_skill`                     | Check the adapter is actually receiving `skill_content=None` for the baseline (`fake_adapter.invocations` in tests verifies this). |
-| Trigger eval returns `False` even for obvious matches                           | Adapter's `evaluate_trigger` reads assistant text, not stdout. Ensure the CLI is emitting `stream-json` and a final `result` event. |
+This section describes the complete skill-creation pipeline in generic terms. Each stage includes what happens, what artifacts are produced, and who is responsible. Where helpful, the `csv-dedup` skill (built and validated in this repo) is referenced as a concrete example you can cross-reference.
+
+### High-level flow
+
+```mermaid
+flowchart TD
+    A[Capture Intent] --> B[Write SKILL.md Draft]
+    B --> C[Author Eval Cases]
+    C --> D["Preflight Validation (Phase A)"]
+    D --> E{Body Iteration Loop}
+
+    subgraph bodyLoop ["Body Iteration Loop (max 3 iterations)"]
+        E --> F["Dual Execution (Phase C')"]
+        F --> G[Grade Runs]
+        G --> H["Aggregate Benchmark (Phase D)"]
+        H --> I["Iteration Gate (Phase D')"]
+        I --> J["Human Review (Phase E)"]
+        J --> K["Promotion Gate (Phase F)"]
+        K --> L{Iterate?}
+        L -->|"Yes: snapshot, edit, re-run"| M[Snapshot Skill]
+        M --> N[Edit SKILL.md / evals]
+        N --> D
+    end
+
+    L -->|"No: gate passed or user declines"| O{Description Optimization}
+
+    subgraph descLoop ["Description Optimization Loop (max 3 iterations)"]
+        O --> P[Generate Trigger Queries]
+        P --> Q[User Reviews Query Set]
+        Q --> R["Run Optimization Loop (run_loop.py)"]
+        R --> S[Apply Best Description]
+    end
+
+    S --> T["Package (.skill artifact)"]
+```
+
+### Stage 1: Capture intent and interview
+
+The agent reads the `create-agent-skill` SKILL.md, then works with the user to nail down:
+
+- **What** the skill does (input format, output files, transformation logic)
+- **When** it should trigger (phrases, near-misses, edge cases)
+- **How** success will be measured (file existence, value correctness, format compliance)
+
+The agent may ask clarifying questions. No files are created yet.
+
+> **csv-dedup example:** The user specified "given a CSV with duplicate rows, produce `dedup.csv` and `dedup-report.md`" with 3 edge cases: clean duplicates, whitespace-trimmed comparison, and case-insensitive values.
+
+### Stage 2: Write the skill draft
+
+The agent creates the skill directory with:
+
+- **`SKILL.md`** — YAML frontmatter (`name`, `description`) + markdown body with instructions
+- **`scripts/`** (optional) — bundled helper scripts if the skill benefits from deterministic code
+
+```
+<skill-name>/
+├── SKILL.md
+├── evals/           # (created in Stage 3)
+│   └── evals.json
+└── scripts/         # (optional)
+    └── helper.py
+```
+
+> **csv-dedup example:** `csv-dedup/SKILL.md` (117 lines) + `scripts/dedup_csv.py` (100 lines) handling whitespace trimming, case-insensitive comparison, and RFC-4180 quoted fields.
+
+### Stage 3: Author eval cases (HITL gate)
+
+The agent drafts 2-4 realistic test prompts and presents them to the user for approval. This is a **human-in-the-loop gate** — evals must not run until the user confirms.
+
+Each eval case in `evals/evals.json` contains:
+- **`prompt`** — what a real user would type
+- **`expectations`** — structured assertions with `assertion_id`, `text`, and `critical` flag
+- **`files`** — optional input files
+
+> **csv-dedup example:** 3 initial evals (clean duplicates, whitespace edge case, mixed-case headers), later expanded to 4 in iteration 2 (added quoted-comma fields). See `csv-dedup/evals/evals.json`.
+
+### Stage 4: Preflight validation (Phase A)
+
+```bash
+python scripts/quick_validate.py <path-to-skill>
+```
+
+Validates SKILL.md frontmatter (name, description format) and, when present, schema-validates `evals/evals.json` against `references/schemas/evals.schema.json`. Run this after every edit to the skill.
+
+### Stage 5: Body iteration loop
+
+This is the core evaluation cycle. Each iteration follows phases C' through F in sequence.
+
+#### 5a. Write iteration manifest
+
+Create `iteration-N/iteration.json` with skill path, eval path, and baseline type:
+
+```json
+{
+  "skill_path": "/abs/path/to/<skill-name>",
+  "evals_path": "/abs/path/to/<skill-name>/evals/evals.json",
+  "baseline_type": "without_skill",
+  "runs_per_configuration": 1
+}
+```
+
+For `old_skill` baselines (comparing against a prior snapshot), also set `old_skill_path`.
+
+#### 5b. Dual execution (Phase C')
+
+```bash
+python eval-harness/scripts/run_eval.py dual --iteration N --workspace <workspace>
+```
+
+Launches `with_skill` and `without_skill` (or `old_skill`) runs **in parallel** for every eval case. Each run produces:
+- `outputs/` — the files the agent generated
+- `transcript.jsonl` — full execution log
+- `timing.json` — duration, token counts
+
+> **csv-dedup example:** Iteration 1 ran 3 evals x 2 sides = 6 runs. Iteration 2 ran 4 evals x 2 sides = 8 runs.
+
+#### 5c. Grade each run
+
+Either a **programmatic grading script** (preferred for deterministic checks) or a **grader subagent** (via `agents/grader.md`) evaluates each assertion against the outputs and writes `grading.json` per run.
+
+> **csv-dedup example:** `grade_all.py` at the workspace root checks file existence, row counts, whitespace preservation, header order, and report format programmatically.
+
+#### 5d. Aggregate and gate (Phases D, D')
+
+```bash
+python eval-harness/scripts/aggregate_benchmark.py --iteration N --workspace <ws> --skill-name <name>
+python scripts/check_iteration.py --iteration N --workspace <ws>
+```
+
+Produces `benchmark.json` (machine-readable) and `benchmark.md` (human-readable table). The iteration gate validates all artifacts against JSON schemas.
+
+> **csv-dedup example:** Iteration 1 benchmark: 100% vs 100% (evals too easy). Iteration 2 benchmark: 100% vs 84% (+16pp lift) after adding harder assertions.
+
+#### 5e. Human review (Phase E)
+
+```bash
+python eval-harness/viewer/generate_review.py <ws> --iteration N --skill-name <name> --benchmark <ws>/iteration-N/benchmark.json
+```
+
+Opens a browser-based viewer with:
+- **Outputs tab** — prompt, generated files, formal grades, feedback textarea per run
+- **Benchmark tab** — pass rates, timing, token usage, per-eval breakdowns
+
+The user reviews and clicks **"Submit All Reviews"**, which writes `feedback.json` with `"status": "complete"`.
+
+#### 5f. Promotion gate (Phase F)
+
+```bash
+python scripts/check_promotion.py --iteration N --workspace <ws>
+```
+
+Checks against thresholds in `config/thresholds.json`:
+- Candidate pass rate >= 85%
+- Lift vs baseline >= 10pp
+- 0 critical failures in the candidate
+- `feedback.json` status is `"complete"`
+
+If the gate passes and the user is satisfied, the body loop ends. If the gate fails or the user wants improvements, proceed to the next iteration.
+
+#### 5g. Between iterations: snapshot, then edit
+
+Before making any changes for the next iteration:
+
+1. **Snapshot** the current skill to `<workspace>/iteration-N-snapshot/` — this preserves the exact version that produced the current results
+2. **Edit** the SKILL.md body, bundled scripts, or eval cases based on feedback
+3. Re-run preflight validation (Phase A)
+4. Start the next iteration at step 5a
+
+> **csv-dedup example:** `iteration-1-snapshot/SKILL.md` preserves the pre-edit version (no whitespace-preservation guidance). The current `csv-dedup/SKILL.md` adds explicit "trim for comparison only, preserve originals" instructions and `csv.DictReader` guidance. The diff confirms the snapshot captured the right state.
+
+### Stage 6: Description optimization loop
+
+After the body is stable, the description optimization loop tunes the `description` field in SKILL.md frontmatter so the skill triggers reliably for real user queries.
+
+#### 6a. Generate trigger eval queries
+
+The agent creates ~20 realistic queries — 10 that **should** trigger the skill and 10 that **should not** (near-misses that share keywords but need different tools). These are saved as a JSON file.
+
+> **csv-dedup example:** `trigger-eval.json` (82 lines) includes queries like *"i have this csv export from salesforce and there are definitely duplicate entries"* (should trigger) and *"can you sort my CSV alphabetically by the last name column"* (should not).
+
+#### 6b. User reviews the query set
+
+The agent fills the HTML template from `assets/eval_review.html` and opens it for the user to edit labels and export the finalized set.
+
+> **csv-dedup example:** `trigger-eval-review.html` was generated at the workspace root.
+
+#### 6c. Run the optimization loop
+
+```bash
+python eval-harness/scripts/run_loop.py \
+  --eval-set <trigger-eval.json> \
+  --skill-path <skill> \
+  --model <model-id> \
+  --max-iterations 3 \
+  --verbose
+```
+
+Iterates on the description, testing each candidate against the query set. Reports train/test accuracy per iteration. Converges when accuracy plateaus or hits the iteration cap.
+
+> **csv-dedup example:** The loop converged on iteration 1 with 100% accuracy (12/12 train, 8/8 test) — the original description was already well-calibrated.
+
+#### 6d. Apply the best description
+
+The agent takes `best_description` from the loop output, updates the SKILL.md frontmatter, and shows a before/after diff.
+
+### Stage 7: Package
+
+```bash
+python scripts/package_skill.py <path/to/skill-folder>
+```
+
+Produces a `.skill` zip artifact. The `evals/` directory is intentionally excluded — evals are for development, not end users.
+
+---
+
+## Artifacts produced at each stage
+
+| Stage | Artifacts | Location |
+|-------|-----------|----------|
+| Draft | `SKILL.md`, `scripts/` (optional) | `<skill>/` |
+| Eval authoring | `evals/evals.json` | `<skill>/evals/` |
+| Preflight | stdout ("Skill is valid!") | terminal |
+| Dual execution | `outputs/`, `transcript.jsonl`, `timing.json` per run | `<workspace>/iteration-N/<eval-id>/<side>/run-1/` |
+| Grading | `grading.json` per run | same as above |
+| Aggregation | `benchmark.json`, `benchmark.md` | `<workspace>/iteration-N/` |
+| Human review | `feedback.json` | `<workspace>/iteration-N/` |
+| Snapshot | full skill copy | `<workspace>/iteration-N-snapshot/` |
+| Description opt | `trigger-eval.json`, `trigger-eval-review.html` | `<workspace>/` |
+| Package | `<skill-name>.skill` | working directory |
+
+---
+
+## Practical considerations
+
+These observations come from building and validating two skills (`finance-variance` and `csv-dedup`) through the full pipeline.
+
+- **Iteration 1 can produce false confidence.** If all evals pass for both `with_skill` and `without_skill` (0pp lift), the evals are too easy — they don't discriminate. This happened with `csv-dedup` iteration 1 (100% vs 100%). The fix is to harden the eval set: add assertions that test exact output format, edge-case handling, or behaviors the baseline is unlikely to get right. In `csv-dedup`, adding `original-whitespace-preserved` (a critical assertion the baseline fails) and a fourth eval with quoted-comma fields produced a meaningful +16pp lift in iteration 2.
+
+- **The description optimization loop may converge immediately.** If the frontmatter description is already well-written (covers trigger phrases and near-misses), `run_loop.py` finishes in 1 iteration with 100% accuracy. This is correct behavior, not a failure. The `csv-dedup` description triggered correctly for all 20 test queries on the first pass.
+
+- **The `require_feedback_complete` threshold matters.** The promotion gate in `config/thresholds.json` requires `feedback.json` to have `"status": "complete"`. If you skip the viewer review or the feedback file is missing, the gate will fail. Always click "Submit All Reviews" in the viewer before proceeding.
+
+- **Eval IDs are flexible.** The harness accepts both string IDs (`"eval-1"`, `"eval-2"`) and numeric IDs (`1`, `2`, `3`). The `finance-variance` skill used string IDs; `csv-dedup` used numeric IDs. Both work correctly.
+
+- **Bundled scripts pay for themselves.** When the skill includes a deterministic helper script (e.g., `compute_variance.py`, `dedup_csv.py`), the `with_skill` agent consistently produces correct outputs. Without the script, baseline agents reinvent the logic and introduce subtle errors (inverted signs, trimmed whitespace, non-standard formats). The cost is a few extra tokens and seconds per run; the gain is near-perfect reproducibility.
+
+- **Programmatic grading scripts are reusable.** The `grade_all.py` / `grade_iteration.py` scripts written during evaluation can be re-run on any iteration. For skills with deterministic outputs, prefer these over grader subagents — they are faster, cheaper, and perfectly reproducible.
+

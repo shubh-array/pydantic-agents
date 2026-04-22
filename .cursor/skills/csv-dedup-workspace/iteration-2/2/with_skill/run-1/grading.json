@@ -1,0 +1,59 @@
+{
+  "expectations": [
+    {
+      "assertion_id": "dedup-csv-exists",
+      "text": "A file named dedup.csv exists in the outputs directory",
+      "passed": true,
+      "evidence": "dedup.csv found",
+      "critical": true
+    },
+    {
+      "assertion_id": "dedup-report-exists",
+      "text": "A file named dedup-report.md exists in the outputs directory",
+      "passed": true,
+      "evidence": "dedup-report.md found",
+      "critical": true
+    },
+    {
+      "assertion_id": "whitespace-trimmed-dedup",
+      "text": "dedup.csv contains exactly 3 data rows \u2014 because whitespace-trimmed cells correctly identify the duplicates",
+      "passed": true,
+      "evidence": "dedup.csv has 3 data rows (expected 3)",
+      "critical": true
+    },
+    {
+      "assertion_id": "report-shows-3-removed",
+      "text": "dedup-report.md reports that exactly 3 duplicates were removed",
+      "passed": true,
+      "evidence": "Report shows 3 duplicates removed (expected 3)",
+      "critical": true
+    },
+    {
+      "assertion_id": "original-whitespace-preserved",
+      "text": "dedup.csv preserves the original cell values from the first occurrence \u2014 the first row of data should have '  Alice ' (with leading/trailing spaces) NOT 'Alice', because trimming is only for comparison, not for output",
+      "passed": true,
+      "evidence": "First data row name field: '  Alice ' \u2014 has leading spaces (original preserved)",
+      "critical": true
+    },
+    {
+      "assertion_id": "removed-table-present",
+      "text": "dedup-report.md includes a table of removed rows with their original row numbers",
+      "passed": true,
+      "evidence": "Removed-rows table found in report",
+      "critical": false
+    }
+  ],
+  "summary": {
+    "passed": 6,
+    "failed": 0,
+    "total": 6,
+    "pass_rate": 1.0
+  },
+  "eval_feedback": {
+    "suggestions": [],
+    "overall": "Evals look solid."
+  },
+  "timing": {
+    "executor_duration_seconds": 0
+  }
+}

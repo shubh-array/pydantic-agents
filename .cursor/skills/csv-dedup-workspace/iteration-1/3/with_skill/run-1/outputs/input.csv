@@ -1,0 +1,6 @@
+Name,EMAIL,City
+Alice,alice@example.com,Boston
+Bob,bob@example.com,Seattle
+ALICE,alice@example.com,BOSTON
+alice,ALICE@EXAMPLE.COM,boston
+Bob,BOB@EXAMPLE.COM,Seattle
