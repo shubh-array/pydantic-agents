@@ -1,0 +1,59 @@
+{
+  "expectations": [
+    {
+      "assertion_id": "dedup-csv-exists",
+      "text": "A file named dedup.csv exists in the outputs directory",
+      "passed": true,
+      "evidence": "dedup.csv found",
+      "critical": true
+    },
+    {
+      "assertion_id": "dedup-report-exists",
+      "text": "A file named dedup-report.md exists in the outputs directory",
+      "passed": true,
+      "evidence": "dedup-report.md found",
+      "critical": true
+    },
+    {
+      "assertion_id": "case-insensitive-dedup",
+      "text": "dedup.csv contains exactly 2 data rows (Alice and Bob) \u2014 case-insensitive comparison on values means ALICE/alice/Alice are all the same, as are Bob/BOB",
+      "passed": true,
+      "evidence": "dedup.csv has 2 data rows (expected 2)",
+      "critical": true
+    },
+    {
+      "assertion_id": "report-shows-3-removed",
+      "text": "dedup-report.md reports that exactly 3 duplicates were removed",
+      "passed": true,
+      "evidence": "Report shows 3 duplicates removed (expected 3)",
+      "critical": true
+    },
+    {
+      "assertion_id": "headers-preserved-as-is",
+      "text": "dedup.csv preserves the original mixed-case headers: Name, EMAIL, City",
+      "passed": true,
+      "evidence": "Headers: ['Name', 'EMAIL', 'City'] (expected ['Name', 'EMAIL', 'City'])",
+      "critical": true
+    },
+    {
+      "assertion_id": "report-uses-standard-title",
+      "text": "dedup-report.md starts with the heading '# CSV Dedup Report'",
+      "passed": false,
+      "evidence": "Report does NOT start with '# CSV Dedup Report'",
+      "critical": false
+    }
+  ],
+  "summary": {
+    "passed": 5,
+    "failed": 1,
+    "total": 6,
+    "pass_rate": 0.83
+  },
+  "eval_feedback": {
+    "suggestions": [],
+    "overall": "Evals look solid."
+  },
+  "timing": {
+    "executor_duration_seconds": 0
+  }
+}

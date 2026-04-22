@@ -1,0 +1,59 @@
+{
+  "expectations": [
+    {
+      "assertion_id": "dedup-csv-exists",
+      "text": "A file named dedup.csv exists in the outputs directory",
+      "passed": true,
+      "evidence": "dedup.csv found",
+      "critical": true
+    },
+    {
+      "assertion_id": "dedup-report-exists",
+      "text": "A file named dedup-report.md exists in the outputs directory",
+      "passed": true,
+      "evidence": "dedup-report.md found",
+      "critical": true
+    },
+    {
+      "assertion_id": "quoted-fields-correct-row-count",
+      "text": "dedup.csv contains exactly 3 data rows: Smith John, Doe Jane, and Lee Sam \u2014 quoted-comma fields must be parsed as single cells, not split",
+      "passed": true,
+      "evidence": "dedup.csv has 3 data rows (expected 3 with quoted-comma fields)",
+      "critical": true
+    },
+    {
+      "assertion_id": "report-shows-2-removed",
+      "text": "dedup-report.md reports that exactly 2 duplicates were removed",
+      "passed": true,
+      "evidence": "Report shows 2 duplicates removed (expected 2)",
+      "critical": true
+    },
+    {
+      "assertion_id": "quoted-headers-preserved",
+      "text": "dedup.csv preserves the original column headers: Name, Address, Score",
+      "passed": true,
+      "evidence": "Headers: ['Name', 'Address', 'Score']",
+      "critical": false
+    },
+    {
+      "assertion_id": "report-uses-standard-title",
+      "text": "dedup-report.md starts with the heading '# CSV Dedup Report'",
+      "passed": true,
+      "evidence": "Report starts with '# CSV Dedup Report'",
+      "critical": false
+    }
+  ],
+  "summary": {
+    "passed": 6,
+    "failed": 0,
+    "total": 6,
+    "pass_rate": 1.0
+  },
+  "eval_feedback": {
+    "suggestions": [],
+    "overall": "Evals look solid."
+  },
+  "timing": {
+    "executor_duration_seconds": 0
+  }
+}

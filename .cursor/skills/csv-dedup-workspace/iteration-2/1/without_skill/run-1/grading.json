@@ -1,0 +1,66 @@
+{
+  "expectations": [
+    {
+      "assertion_id": "dedup-csv-exists",
+      "text": "A file named dedup.csv exists in the outputs directory",
+      "passed": true,
+      "evidence": "dedup.csv found",
+      "critical": true
+    },
+    {
+      "assertion_id": "dedup-report-exists",
+      "text": "A file named dedup-report.md exists in the outputs directory",
+      "passed": true,
+      "evidence": "dedup-report.md found",
+      "critical": true
+    },
+    {
+      "assertion_id": "correct-row-count",
+      "text": "dedup.csv contains exactly 4 data rows (header + 4 rows): Alice, Bob, Carol, Dave",
+      "passed": true,
+      "evidence": "dedup.csv has 4 data rows (expected 4)",
+      "critical": true
+    },
+    {
+      "assertion_id": "report-shows-2-removed",
+      "text": "dedup-report.md reports that exactly 2 duplicates were removed",
+      "passed": true,
+      "evidence": "Report shows 2 duplicates removed (expected 2)",
+      "critical": true
+    },
+    {
+      "assertion_id": "removed-table-present",
+      "text": "dedup-report.md includes a table listing the removed duplicate rows (row numbers and content)",
+      "passed": true,
+      "evidence": "Removed-rows table found in report",
+      "critical": false
+    },
+    {
+      "assertion_id": "column-order-preserved",
+      "text": "dedup.csv preserves the original column order: Name, Age, City",
+      "passed": true,
+      "evidence": "Headers: ['Name', 'Age', 'City']",
+      "critical": false
+    },
+    {
+      "assertion_id": "report-uses-standard-title",
+      "text": "dedup-report.md starts with the heading '# CSV Dedup Report'",
+      "passed": false,
+      "evidence": "Report does NOT start with '# CSV Dedup Report'",
+      "critical": false
+    }
+  ],
+  "summary": {
+    "passed": 6,
+    "failed": 1,
+    "total": 7,
+    "pass_rate": 0.86
+  },
+  "eval_feedback": {
+    "suggestions": [],
+    "overall": "Evals look solid."
+  },
+  "timing": {
+    "executor_duration_seconds": 0
+  }
+}

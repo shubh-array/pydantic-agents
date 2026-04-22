@@ -1,13 +1,6 @@
 # create-agent-skill
 
-A meta-skill for **authoring, evaluating, and iteratively improving** agent skills for coding agents (Cursor CLI, Claude Code, …). It ships an adapter-backed evaluation harness that runs your candidate skill against a baseline, grades the outputs against machine-checkable assertions, and gates promotion on configurable thresholds.
-
-This document is for two audiences:
-
-1. **Users** who want to build a new skill with this tool and need to know what files are produced at every step so they can compare their own run against a known-good reference.
-2. **Developers** who are extending this skill itself (adding adapters, tweaking the harness, evolving schemas).
-
-Everything shown below is the **real output** of a simulated run against the Cursor CLI agent. If your run produces a materially different layout or missing files, something is off.
+A agent-agnostic, meta-skill for **authoring, evaluating, and iteratively improving** agent skills for coding agents (Cursor CLI, Claude Code, …). It ships an adapter-backed evaluation harness that runs your candidate skill against a baseline, grades the outputs against machine-checkable assertions, and gates promotion on configurable thresholds.
 
 ---
 
@@ -17,14 +10,12 @@ Everything shown below is the **real output** of a simulated run against the Cur
 2. [Architecture](#architecture)
 3. [Workflow and phase map](#workflow-and-phase-map)
 4. [Data contracts and schemas](#data-contracts-and-schemas)
-5. [End-to-end example: the `finance-variance` skill, 3 iterations](#end-to-end-example-the-finance-variance-skill-3-iterations)
+5. [End-to-end example: the `finance-variance` skill, 2 iterations](#end-to-end-example-the-finance-variance-skill-2-iterations)
    1. [Iteration 1 — baseline dual run](#iteration-1--baseline-dual-run)
-   2. [Iteration 2 — expand the eval set](#iteration-2--expand-the-eval-set)
-   3. [Iteration 3 — improve the body, compare against `old_skill`](#iteration-3--improve-the-body-compare-against-old_skill)
+   2. [Iteration 2 — re-run after skill body improvement](#iteration-2--re-run-after-skill-body-improvement)
 6. [Defaults and policy](#defaults-and-policy)
-7. [Known gaps and roadmap (TODOs)](#known-gaps-and-roadmap-todos)
-8. [Runs vs iterations (FAQ)](#runs-vs-iterations-faq)
-9. [Troubleshooting](#troubleshooting)
+7. [End-to-end workflow: from intent to packaged skill](#end-to-end-workflow-from-intent-to-packaged-skill)
+8. [Practical considerations](#practical-considerations)
 
 ---
 
@@ -32,12 +23,16 @@ Everything shown below is the **real output** of a simulated run against the Cur
 
 `create-agent-skill` is a skill that teaches an agent how to turn a fuzzy intent ("I want a skill for X") into a production-grade skill with:
 
-- A clean `SKILL.md` that triggers reliably.
+- A clean and validated `SKILL.md` that triggers reliably.
 - A machine-checked eval set (`evals/evals.json`).
 - Quantitative proof that the skill actually helps (pass-rate lift over a baseline agent).
 - A deterministic package (`.skill` zip) ready to install.
 
-It does this by running two agents side by side on every eval: one **with** the skill loaded, one **without** (or against an **old snapshot**). The delta is the skill's contribution.
+It does this by running two agents side by side on every eval: 
+- One **with** the skill loaded, 
+- The other **without** (or against an **old snapshot**). 
+
+**The delta is the skill's contribution.**
 
 ## Architecture
 
@@ -89,7 +84,7 @@ This is what makes the comparison meaningful: the baseline agent genuinely does 
 
 ## Workflow and phase map
 
-All commands run with the create-agent-skill root as the current working directory so imports resolve.
+All commands run with the `create-agent-skill` root as the current working directory so imports resolve.
 
 | Phase | What happens                                                 | Command                                                                                                                      |
 |-------|--------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------|
@@ -108,11 +103,15 @@ Workspace layout produced by the harness:
 
 ```
 <skill-name>-workspace/
+├── grade_iteration.py          # Custom programmatic grader (written during the run)
+├── iteration-1-snapshot/       # Snapshot of the skill at the end of iteration 1
+│   ├── SKILL.md
+│   ├── evals/evals.json
+│   └── scripts/compute_variance.py
 ├── iteration-1/
 │   ├── iteration.json          # Manifest (schema: iteration.schema.json) — author writes this
 │   ├── benchmark.json          # Aggregated results  (schema: benchmark.schema.json)
 │   ├── benchmark.md            # Human-readable table
-│   ├── review.html             # Phase E static viewer (if --static used)
 │   ├── feedback.json           # Human feedback       (schema: feedback.schema.json)
 │   └── <eval-id>/
 │       ├── eval_metadata.json  # Per-eval metadata    (schema: eval_metadata.schema.json)
@@ -125,10 +124,9 @@ Workspace layout produced by the harness:
 │       └── without_skill/      # (or old_skill/)
 │           └── run-1/          # Same structure
 ├── iteration-2/
-└── iteration-3/
+│   └── ...                     # Same structure as iteration-1
+└── ...
 ```
-
-Notice the skill directory (`finance-variance/` in the example) is **separate** from the workspace (`finance-variance-workspace/`). Evaluation artifacts never land inside the skill — the skill stays shippable.
 
 ## Data contracts and schemas
 
@@ -146,45 +144,64 @@ Every artifact written by the harness is validated against a JSON Schema. If you
 
 ---
 
-## End-to-end example: the `finance-variance` skill, 3 iterations
+## End-to-end example: the `finance-variance` skill, 2 iterations
 
-This section is the real run that was used to validate this skill. Every JSON snippet and every number below was copied directly from `/tmp/cas-sim/finance-variance-workspace/`.
+**Example Skill resources created:**
+- The skill directory (`finance-variance/`) is **separate** from the workspace (`finance-variance-workspace/`). 
+- Evaluation artifacts never land inside the skill — the skill stays shippable.
 
-**Goal.** Build a skill called `finance-variance` that, given a CSV of `category,budget,actual`, produces a `variance.csv` with columns `category,budget,actual,variance,variance_pct`.
+**Goal.** Build a skill called `finance-variance` that, given a CSV of `category,budget,actual`, produces a `variance.csv` with columns `category,budget,actual,variance,variance_pct` and a `summary.md` with totals and the top 3 over-budget categories.
 
 ### User Prompt
 ```
   Use the create-agent-skill meta-skill to build and evaluate a new skill called `finance-variance`.
+
   **What it does:** Given a CSV of monthly budget vs. actuals (`category`, `budget`, `actual`), produce:
   - `variance.csv` with `category, budget, actual, variance, variance_pct` (pct as `"-12.5%"`).
   - `summary.md` with totals and the top 3 over-budget categories.
-  **When it should trigger:** budget vs actuals, variance analysis, monthly spend review, "compare budget to actual" on a CSV. Near-misses count.
+
+  **When it should trigger:** budget vs actuals, variance analysis, monthly spend review,
+"compare budget to actual" on a CSV. Near-misses count.
+  
   **Edge cases to cover across iterations:**
   1. Clean CSV.
   2. Quoted categories containing commas (e.g. `"Travel, domestic"`).
   3. Numeric values with thousands separators (`"1,250.00"`) and trailing blank lines.
-  Place the skill at `.cursor/skills/finance-variance/` and the workspace at `.cursor/skills/finance-variance-workspace/`. Use the Cursor adapter. I'll
-  review outputs in the viewer between iterations.
+
+  Place the skill at `./.cursor/skills/finance-variance/` and the workspace at `./.cursor/skills/finance-variance-workspace/` (relative to the current project root). 
+  
+  Use the Cursor adapter. I'll review outputs in the viewer between iterations.
 ```
 
-**Setup.**
+**Actual setup produced.**
 
 ```
-/tmp/cas-sim/
-├── input-q1.csv                 # Simple input (no quoting, no formatting)
-├── input-q1-edge.csv            # Quoted categories with commas/ampersands (iteration 2)
-├── input-q1-thousands.csv       # Thousands-separators in numbers      (iteration 3)
-├── finance-variance/            # The skill under test
+.cursor/skills/
+├── finance-variance/                    # The skill under test
 │   ├── SKILL.md
-│   └── evals/evals.json
-├── finance-variance-v1/         # Snapshot of v1 (used as old_skill in iteration 3)
-└── finance-variance-workspace/  # All evaluation artifacts land here
+│   ├── evals/
+│   │   └── evals.json                  # 3 eval cases authored up front
+│   └── scripts/
+│       └── compute_variance.py          # Bundled helper script
+└── finance-variance-workspace/          # All evaluation artifacts land here
+    ├── grade_iteration.py               # Programmatic grading script
+    ├── iteration-1-snapshot/            # Snapshot of the skill (taken after iteration 1)
+    │   ├── SKILL.md
+    │   ├── evals/evals.json
+    │   └── scripts/compute_variance.py
+    ├── iteration-1/
+    │   └── ...
+    └── iteration-2/
+        └── ...
 ```
+
+All 3 eval cases were authored **up front** in `evals/evals.json` — covering the clean CSV (eval-1), quoted categories (eval-2), and thousands-separators with trailing blanks (eval-3). Both iterations ran all 3 cases.
 
 Phase A runs once up front and any time you edit the skill:
 
 ```bash
-$ uv run python scripts/quick_validate.py /tmp/cas-sim/finance-variance
+$ uv run python scripts/quick_validate.py \
+    /Users/sshukla/Desktop/src/pydantic-agents/.cursor/skills/finance-variance
 Skill is valid!
 ```
 
@@ -192,22 +209,56 @@ Skill is valid!
 
 ### Iteration 1 — baseline dual run
 
-**Goal of the iteration.** Prove the skill's value against "no skill at all" on the simplest possible input.
+**Goal of the iteration.** Prove the skill's value against "no skill at all" on all three eval cases with the initial skill draft.
 
-**`evals/evals.json`** (1 case):
+**`evals/evals.json`** (3 cases, authored before iteration 1):
 
 ```json
 [
   {
-    "id": "fv-1",
-    "prompt": "Produce a budget variance report for /tmp/cas-sim/input-q1.csv.",
+    "id": 1,
+    "eval_id": "eval-1",
+    "prompt": "Here's our monthly budget vs. actuals for Q1. Please run a variance analysis and give me variance.csv and summary.md.\n\n```\ncategory,budget,actual\nMarketing,10000,12500\nEngineering,50000,48000\nSales,30000,31500\nHR,15000,14200\nOperations,20000,19800\n```",
     "expectations": [
-      {"assertion_id": "variance-csv-exists", "text": "variance.csv exists in outputs/", "critical": true},
-      {"assertion_id": "header-correct",      "text": "variance.csv first line is exactly 'category,budget,actual,variance,variance_pct'", "critical": true},
-      {"assertion_id": "row-count",           "text": "variance.csv has the same row count as input (plus header)", "critical": true},
-      {"assertion_id": "variance-math",       "text": "For every row, variance equals actual - budget", "critical": true}
+      { "assertion_id": "variance-csv-exists", "text": "variance.csv exists in the outputs directory", "critical": true },
+      { "assertion_id": "summary-md-exists", "text": "summary.md exists in the outputs directory", "critical": true },
+      { "assertion_id": "variance-csv-has-5-cols", "text": "variance.csv has exactly the columns: category, budget, actual, variance, variance_pct", "critical": true },
+      { "assertion_id": "variance-pct-format", "text": "variance_pct values use the format like '25.0%' or '-4.0%' (one decimal, percent sign, no space)", "critical": true },
+      { "assertion_id": "marketing-over-budget", "text": "Marketing row shows variance=2500 and variance_pct=25.0%", "critical": false },
+      { "assertion_id": "engineering-under-budget", "text": "Engineering row shows variance=-2000 and variance_pct=-4.0%", "critical": false },
+      { "assertion_id": "summary-has-top3", "text": "summary.md lists the top 3 over-budget categories (Marketing, Sales, and one more)", "critical": false },
+      { "assertion_id": "summary-has-totals", "text": "summary.md includes a Totals section with Total Budget, Total Actual, Total Variance", "critical": false }
     ],
-    "files": ["/tmp/cas-sim/input-q1.csv"]
+    "files": []
+  },
+  {
+    "id": 2,
+    "eval_id": "eval-2",
+    "prompt": "Can you compare our budget to actuals for last month? Some of our department names have commas in them. I need variance.csv and summary.md as output.\n\nHere is the data:\n\n```\ncategory,budget,actual\n\"Travel, domestic\",5000,6200\n\"Software, licenses\",12000,11500\nMarketing,10000,10800\n\"Office, supplies\",3000,2750\nEngineering,40000,38000\n```",
+    "expectations": [
+      { "assertion_id": "variance-csv-exists", "text": "variance.csv exists in the outputs directory", "critical": true },
+      { "assertion_id": "summary-md-exists", "text": "summary.md exists in the outputs directory", "critical": true },
+      { "assertion_id": "quoted-category-preserved", "text": "variance.csv contains a row with category 'Travel, domestic' (the comma inside the name is preserved, not treated as a column separator)", "critical": true },
+      { "assertion_id": "travel-variance-correct", "text": "The 'Travel, domestic' row has variance=1200 and variance_pct=24.0%", "critical": false },
+      { "assertion_id": "row-count-correct", "text": "variance.csv has exactly 5 data rows (one per category)", "critical": true },
+      { "assertion_id": "top3-over-budget-in-summary", "text": "summary.md lists Travel, domestic and Marketing as over-budget categories (they are the only two over budget)", "critical": false }
+    ],
+    "files": []
+  },
+  {
+    "id": 3,
+    "eval_id": "eval-3",
+    "prompt": "Hey, my finance team just sent over this CSV for the monthly spend review — can you do the variance analysis? It has some formatting quirks (thousands separators in the numbers) and there are blank lines at the end. I need variance.csv and summary.md.\n\n```\ncategory,budget,actual\n\"Marketing\",\"12,500.00\",\"15,000.00\"\n\"Engineering\",\"85,000.00\",\"82,500.00\"\n\"Office, supplies\",\"3,250.00\",\"4,100.00\"\n\"HR\",\"18,000.00\",\"17,500.00\"\n\"Sales\",\"45,000.00\",\"48,750.00\"\n\n\n```",
+    "expectations": [
+      { "assertion_id": "variance-csv-exists", "text": "variance.csv exists in the outputs directory", "critical": true },
+      { "assertion_id": "summary-md-exists", "text": "summary.md exists in the outputs directory", "critical": true },
+      { "assertion_id": "thousands-separators-stripped", "text": "variance.csv numeric columns contain plain numbers without thousands separators (e.g. 12500 not 12,500)", "critical": true },
+      { "assertion_id": "row-count-correct", "text": "variance.csv has exactly 5 data rows (blank trailing lines are ignored)", "critical": true },
+      { "assertion_id": "marketing-variance-correct", "text": "Marketing row shows budget=12500, actual=15000, variance=2500, variance_pct=20.0%", "critical": false },
+      { "assertion_id": "office-supplies-quoted-comma", "text": "variance.csv contains a row with category 'Office, supplies' (comma inside name preserved)", "critical": true },
+      { "assertion_id": "top3-over-budget-correct", "text": "summary.md top-3 over-budget list includes Marketing, Sales, and Office supplies (the three over-budget categories)", "critical": false }
+    ],
+    "files": []
   }
 ]
 ```
@@ -216,12 +267,11 @@ Skill is valid!
 
 ```json
 {
-  "skill_path": "/tmp/cas-sim/finance-variance",
-  "evals_path": "/tmp/cas-sim/finance-variance/evals/evals.json",
+  "skill_path": "/Users/sshukla/Desktop/src/pydantic-agents/.cursor/skills/finance-variance",
+  "evals_path": "/Users/sshukla/Desktop/src/pydantic-agents/.cursor/skills/finance-variance/evals/evals.json",
   "baseline_type": "without_skill",
   "runs_per_configuration": 1,
-  "iteration": 1,
-  "notes": "Initial dual run: finance-variance v1 vs no skill."
+  "notes": "Iteration 1: initial skill draft. Three eval cases: clean CSV, quoted commas, thousands separators + trailing blanks."
 }
 ```
 
@@ -230,127 +280,248 @@ Skill is valid!
 ```bash
 $ uv run python eval-harness/scripts/run_eval.py dual \
     --iteration 1 \
-    --workspace /tmp/cas-sim/finance-variance-workspace \
+    --workspace /Users/sshukla/Desktop/src/pydantic-agents/.cursor/skills/finance-variance-workspace \
     --timeout 180
 ```
 
-This single command produced the entire subtree below it — no extra files, no files in the skill directory:
+This command produced 6 runs (3 evals × 2 sides). The directory tree below `iteration-1/`:
 
 ```
 iteration-1/
 ├── iteration.json
-└── fv-1/
+├── benchmark.json
+├── benchmark.md
+├── feedback.json
+├── eval-1/
+│   ├── eval_metadata.json
+│   ├── with_skill/run-1/
+│   │   ├── outputs/
+│   │   │   ├── variance.csv
+│   │   │   ├── summary.md
+│   │   │   ├── compute_variance.py
+│   │   │   └── budget.csv
+│   │   ├── timing.json
+│   │   ├── grading.json
+│   │   └── transcript.jsonl
+│   └── without_skill/run-1/
+│       ├── outputs/
+│       │   ├── variance.csv
+│       │   └── summary.md
+│       ├── timing.json
+│       ├── grading.json
+│       └── transcript.jsonl
+├── eval-2/
+│   ├── eval_metadata.json
+│   ├── with_skill/run-1/
+│   │   └── outputs/ ...        # (same structure)
+│   └── without_skill/run-1/
+│       └── outputs/ ...
+└── eval-3/
     ├── eval_metadata.json
     ├── with_skill/run-1/
-    │   ├── outputs/
-    │   │   ├── variance.csv    # ← candidate's output
-    │   │   └── variance.py     # ← the agent also wrote the helper script
-    │   ├── timing.json
-    │   └── transcript.jsonl
+    │   └── outputs/ ...
     └── without_skill/run-1/
-        ├── outputs/
-        │   ├── generate_report.py
-        │   ├── variance_report.csv    # ← different file name — baseline guessed
-        │   └── variance_report.md
-        ├── timing.json
-        └── transcript.jsonl
+        └── outputs/ ...
 ```
 
-`variance.csv` from `with_skill/run-1/outputs/`:
+`variance.csv` from `with_skill/run-1/outputs/` (eval-1):
 
 ```csv
 category,budget,actual,variance,variance_pct
-marketing,10000,12500,2500,25
-engineering,50000,47800,-2200,-4.4
-sales,20000,23200,3200,16
-support,8000,8000,0,0
-travel,0,1200,1200,n/a
+Marketing,10000.0,12500.0,2500.0,25.0%
+Engineering,50000.0,48000.0,-2000.0,-4.0%
+Sales,30000.0,31500.0,1500.0,5.0%
+HR,15000.0,14200.0,-800.0,-5.3%
+Operations,20000.0,19800.0,-200.0,-1.0%
 ```
 
-`variance_report.csv` from `without_skill/run-1/outputs/` (note the extra `status` column, TOTAL row, and wrong file name — the baseline invented its own schema):
+`variance.csv` from `without_skill/run-1/outputs/` (eval-1) — note the extra `status` column, `Total` row, and inverted variance signs (the baseline used `budget − actual` instead of `actual − budget`):
 
 ```csv
 category,budget,actual,variance,variance_pct,status
-marketing,10000.00,12500.00,2500.00,25.00%,Over budget
-engineering,50000.00,47800.00,-2200.00,-4.40%,Under budget
-…
-TOTAL,88000.00,92700.00,4700.00,5.34%,Over budget
+Marketing,10000,12500,-2500,-25.0%,Over Budget
+Engineering,50000,48000,2000,4.0%,Under Budget
+Sales,30000,31500,-1500,-5.0%,Over Budget
+HR,15000,14200,800,5.3%,Under Budget
+Operations,20000,19800,200,1.0%,Under Budget
+Total,125000,126000,-1000,-0.8%,Over Budget
 ```
 
-**`timing.json`** (with_skill/run-1):
+**`timing.json`** (with_skill/run-1, eval-1):
 
 ```json
 {
-  "total_duration_seconds": 17.487,
-  "total_duration_api_seconds": 17.487,
-  "total_tokens": 864,
+  "total_duration_seconds": 21.242,
+  "total_duration_api_seconds": 21.242,
+  "total_tokens": 1859,
   "tokens_detail": {
-    "input": 9,
-    "output": 855,
-    "cacheReadTokens": 76637,
-    "cacheWriteTokens": 3708
+    "input": 6,
+    "output": 1853,
+    "cacheReadTokens": 70484,
+    "cacheWriteTokens": 6103
   },
   "status": "ok",
   "exit_code": 0
 }
 ```
 
-**Phase 4 — grade each run.** For this skill all four assertions are deterministic, so the grader is a short Python script (committed at `/tmp/cas-sim/grade.py` in the simulation). Output for `with_skill/run-1` (`grading.json`):
+**Grading** — a programmatic grading script (`grade_iteration.py`) was written at the workspace root to deterministically check all assertions. Output for `with_skill/run-1` eval-1 (`grading.json`):
 
 ```json
 {
   "expectations": [
-    {"assertion_id": "variance-csv-exists", "text": "variance.csv exists in outputs/", "passed": true,  "evidence": ".../variance.csv exists",              "critical": true},
-    {"assertion_id": "header-correct",      "text": "variance.csv first line is exactly 'category,budget,actual,variance,variance_pct'", "passed": true, "evidence": "observed header: 'category,budget,actual,variance,variance_pct'", "critical": true},
-    {"assertion_id": "row-count",           "text": "variance.csv has the same row count as input (plus header)", "passed": true, "evidence": "input rows=5, output data rows=5", "critical": true},
-    {"assertion_id": "variance-math",       "text": "For every row, variance equals actual - budget", "passed": true, "evidence": "all rows consistent", "critical": true}
+    {
+      "assertion_id": "variance-csv-exists",
+      "text": "variance.csv exists",
+      "passed": true,
+      "evidence": "Found at iteration-1/eval-1/with_skill/run-1/outputs/variance.csv",
+      "critical": true
+    },
+    {
+      "assertion_id": "summary-md-exists",
+      "text": "summary.md exists",
+      "passed": true,
+      "evidence": "Found at iteration-1/eval-1/with_skill/run-1/outputs/summary.md",
+      "critical": true
+    },
+    {
+      "assertion_id": "variance-csv-has-5-cols",
+      "text": "variance.csv has exactly category, budget, actual, variance, variance_pct",
+      "passed": true,
+      "evidence": "Columns: ['category', 'budget', 'actual', 'variance', 'variance_pct']",
+      "critical": true
+    },
+    {
+      "assertion_id": "variance-pct-format",
+      "text": "variance_pct uses format like '25.0%'",
+      "passed": true,
+      "evidence": "All values match pattern",
+      "critical": true
+    },
+    {
+      "assertion_id": "marketing-over-budget",
+      "text": "Marketing variance=2500 and variance_pct=25.0%",
+      "passed": true,
+      "evidence": "variance=2500.0, variance_pct=25.0%",
+      "critical": false
+    },
+    {
+      "assertion_id": "engineering-under-budget",
+      "text": "Engineering variance=-2000 and variance_pct=-4.0%",
+      "passed": true,
+      "evidence": "variance=-2000.0, variance_pct=-4.0%",
+      "critical": false
+    },
+    {
+      "assertion_id": "summary-has-top3",
+      "text": "summary.md lists over-budget categories",
+      "passed": true,
+      "evidence": "Marketing found in Top 3 section",
+      "critical": false
+    },
+    {
+      "assertion_id": "summary-has-totals",
+      "text": "summary.md has Totals section",
+      "passed": true,
+      "evidence": "All total rows found",
+      "critical": false
+    }
   ],
-  "summary": {"pass_rate": 1.0, "passed": 4, "failed": 0, "total": 4}
+  "summary": {
+    "passed": 8,
+    "failed": 0,
+    "total": 8,
+    "pass_rate": 1.0
+  },
+  "eval_feedback": {
+    "suggestions": [],
+    "overall": "Programmatic grading."
+  }
 }
 ```
 
-The `without_skill/run-1/grading.json` is the mirror image — `variance-csv-exists` fails because the baseline named the file `variance_report.csv`, and the remaining three cascade to `false`.
+The `without_skill/run-1` eval-1 grading scored 4/8 (50% pass rate). The baseline produced `variance.csv` (so `variance-csv-exists` passed), and the file had the required columns plus an extra `status` column (`variance-csv-has-5-cols` passed as a superset check). However, it used inverted variance signs (`budget − actual` instead of `actual − budget`), so `marketing-over-budget` and `engineering-under-budget` both failed. The summary.md used a different format without the expected "Total Budget" / "Top 3" sections, so those assertions also failed.
 
 **Phase D — aggregate:**
 
 ```bash
 $ uv run python eval-harness/scripts/aggregate_benchmark.py \
     --iteration 1 \
-    --workspace /tmp/cas-sim/finance-variance-workspace \
+    --workspace /Users/sshukla/Desktop/src/pydantic-agents/.cursor/skills/finance-variance-workspace \
     --skill-name finance-variance \
-    --skill-path /tmp/cas-sim/finance-variance
+    --skill-path /Users/sshukla/Desktop/src/pydantic-agents/.cursor/skills/finance-variance
 ```
 
-Resulting `benchmark.json` `run_summary` block (real numbers from the simulation):
+Resulting `benchmark.json` `run_summary` block (actual numbers):
 
 ```json
 {
   "with_skill": {
-    "pass_rate":    {"mean": 1.0,   "stddev": 0.0, "min": 1.0,   "max": 1.0},
-    "time_seconds": {"mean": 17.49, "stddev": 0.0, "min": 17.49, "max": 17.49},
-    "tokens":       {"mean": 864,   "stddev": 0,   "min": 864,   "max": 864}
+    "pass_rate": {
+      "mean": 1.0,
+      "stddev": 0.0,
+      "min": 1.0,
+      "max": 1.0
+    },
+    "time_seconds": {
+      "mean": 21.72,
+      "stddev": 1.79,
+      "min": 20.209,
+      "max": 23.701
+    },
+    "tokens": {
+      "mean": 1859,
+      "stddev": 14,
+      "min": 1845,
+      "max": 1873
+    }
   },
   "without_skill": {
-    "pass_rate":    {"mean": 0.0,   "stddev": 0.0, "min": 0.0,   "max": 0.0},
-    "time_seconds": {"mean": 40.87, "stddev": 0.0, "min": 40.87, "max": 40.87},
-    "tokens":       {"mean": 2927,  "stddev": 0,   "min": 2927,  "max": 2927}
+    "pass_rate": {
+      "mean": 0.627,
+      "stddev": 0.1125,
+      "min": 0.5,
+      "max": 0.714
+    },
+    "time_seconds": {
+      "mean": 19.99,
+      "stddev": 1.29,
+      "min": 18.694,
+      "max": 21.282
+    },
+    "tokens": {
+      "mean": 1303,
+      "stddev": 210,
+      "min": 1172,
+      "max": 1545
+    }
   },
   "delta": {
-    "pass_rate": "+1.00",
-    "time_seconds": "-23.4",
-    "tokens": "-2063"
+    "pass_rate": "+0.37",
+    "time_seconds": "+1.7",
+    "tokens": "+556"
   }
 }
 ```
 
 **`benchmark.md`** renders as:
 
-```
-| Metric    | With Skill      | Without Skill   | Delta   |
-|-----------|-----------------|-----------------|---------|
-| Pass Rate | 100% ± 0%       | 0% ± 0%         | +1.00   |
-| Time      | 17.5s ± 0.0s    | 40.9s ± 0.0s    | -23.4s  |
-| Tokens    | 864 ± 0         | 2927 ± 0        | -2063   |
+```markdown
+# Skill Benchmark: finance-variance
+
+**Model**: <model-name>
+**Date**: 2026-04-21T21:17:21Z
+**Evals**: eval-1, eval-2, eval-3 (1 runs each per configuration)
+
+## Summary
+
+| Metric | With Skill | Without Skill | Delta |
+|--------|------------|---------------|-------|
+| Pass Rate | 100% ± 0% | 63% ± 11% | +0.37 |
+| Time | 21.7s ± 1.8s | 20.0s ± 1.3s | +1.7s |
+| Tokens | 1859 ± 14 | 1303 ± 210 | +556 |
+
+_Token counts may read as n/a when the active adapter does not expose usage (D-006)._
 ```
 
 **Phase D′ — gate:** `check_iteration.py --iteration 1 …` exits 0.
@@ -359,172 +530,124 @@ Resulting `benchmark.json` `run_summary` block (real numbers from the simulation
 
 ```bash
 $ uv run python eval-harness/viewer/generate_review.py \
-    /tmp/cas-sim/finance-variance-workspace \
+    /Users/sshukla/Desktop/src/pydantic-agents/.cursor/skills/finance-variance-workspace \
     --iteration 1 \
     --skill-name finance-variance \
-    --benchmark /tmp/cas-sim/finance-variance-workspace/iteration-1/benchmark.json \
-    --static /tmp/cas-sim/finance-variance-workspace/iteration-1/review.html
+    --benchmark /Users/sshukla/Desktop/src/pydantic-agents/.cursor/skills/finance-variance-workspace/iteration-1/benchmark.json \
+    --static /Users/sshukla/Desktop/src/pydantic-agents/.cursor/skills/finance-variance-workspace/iteration-1/review.html
 ```
 
-`review.html` is ~58 KB of self-contained HTML — no server required.
-
-**`feedback.json`** (written by the user through the viewer, or by hand):
+**`feedback.json`** (written by the user through the viewer):
 
 ```json
 {
-  "status": "complete",
   "reviews": [
-    {"run_id": "fv-1-with_skill-run-1",    "feedback": "Correct output shape and values. Skill clearly produces the exact header and formulas. No issues.",                                     "timestamp": "2026-04-21T20:45:00Z"},
-    {"run_id": "fv-1-without_skill-run-1", "feedback": "Without the skill, the agent invents its own file name (variance_report.csv) and adds extra columns/totals. Confirms skill value.", "timestamp": "2026-04-21T20:45:30Z"}
-  ]
+    {
+      "run_id": "eval-3-without_skill-run-1",
+      "feedback": "Looks great, seems to be working well",
+      "timestamp": "2026-04-21T21:20:45.323Z"
+    }
+  ],
+  "status": "complete"
 }
 ```
 
-**Phase F — promotion gate:** `check_promotion.py --iteration 1 …` exits 0 (candidate pass 100% ≥ 85%, lift +100pp ≥ 10pp, 0 critical failures, feedback complete).
+**What the numbers tell you.** The skill achieved 100% pass rate across all three eval cases. The baseline without the skill scored 63% on average — it could produce the right file names sometimes but used inverted variance signs, invented extra columns, and didn't conform to the required summary structure. The skill costs slightly more in time (+1.7s) and tokens (+556) — it has to write the bundled `compute_variance.py` script — but the determinism is worth it.
 
-✅ Iteration 1 is shippable on the happy path. Move on to expand the eval set.
+**Phase F — promotion gate:** `check_promotion.py --iteration 1 …` -> exits 0: candidate pass 100% ≥ 85%, lift +37pp ≥ 10pp, 0 critical failures, feedback complete.
+
+✅ Iteration 1 passes the promotion gate.
 
 ---
 
-### Iteration 2 — expand the eval set
+### Iteration 2 — re-run after skill body improvement
 
-**Goal.** Add an edge case (`fv-2`) with quoted categories containing commas/ampersands. Does the skill still hold up, and does the baseline?
+**Goal.** Fix a formatting issue observed in iteration 1: the `with_skill` agent was outputting floats in `variance.csv` (`10000.0` instead of `10000`). The skill body was updated to ensure the `_fmt_num` function produces integers when the value is whole.
 
-**Change:** append `fv-2` to `evals/evals.json` (+1 new assertion `quoted-categories-preserved`). Skill body is **unchanged** — we want to see what the capable agent does with the existing prose.
+**Change:** The SKILL.md body was updated — specifically the `_fmt_num` helper function and integer formatting behavior in `compute_variance.py`. The eval set (`evals/evals.json`) was **unchanged** — same 3 cases.
 
-**`iteration-2/iteration.json`** (identical to iteration 1 except for `iteration` and `notes`):
+**`iteration-2/iteration.json`:**
 
 ```json
 {
-  "skill_path": "/tmp/cas-sim/finance-variance",
-  "evals_path": "/tmp/cas-sim/finance-variance/evals/evals.json",
+  "skill_path": "/Users/sshukla/Desktop/src/pydantic-agents/.cursor/skills/finance-variance",
+  "evals_path": "/Users/sshukla/Desktop/src/pydantic-agents/.cursor/skills/finance-variance/evals/evals.json",
   "baseline_type": "without_skill",
   "runs_per_configuration": 1,
-  "iteration": 2,
-  "notes": "Added fv-2 (CSV with quoted categories containing commas/ampersands). Skill body unchanged from iteration 1."
+  "notes": "Iteration 2: fix float formatting in variance.csv numeric columns (10000 not 10000.0)."
 }
 ```
 
-Run the same four phases. `benchmark.md`:
+Run the same phases. The float formatting fix is visible in the outputs — iteration 2 `with_skill` eval-1 now produces `10000` instead of `10000.0`:
 
+```csv
+category,budget,actual,variance,variance_pct
+Marketing,10000,12500,2500,25.0%
+Engineering,50000,48000,-2000,-4.0%
+Sales,30000,31500,1500,5.0%
+HR,15000,14200,-800,-5.3%
+Operations,20000,19800,-200,-1.0%
 ```
-| Metric    | With Skill      | Without Skill    | Delta   |
-|-----------|-----------------|------------------|---------|
-| Pass Rate | 100% ± 0%       | 50% ± 71%        | +0.50   |
-| Time      | 19.6s ± 0.8s    | 38.8s ± 4.7s     | -19.1s  |
-| Tokens    | 862 ± 9         | 2619 ± 1030      | -1758   |
+
+**`benchmark.md`** (actual):
+
+```markdown
+# Skill Benchmark: finance-variance
+
+**Model**: <model-name>
+**Date**: 2026-04-21T21:24:58Z
+**Evals**: eval-1, eval-2, eval-3 (1 runs each per configuration)
+
+## Summary
+
+| Metric | With Skill | Without Skill | Delta |
+|--------|------------|---------------|-------|
+| Pass Rate | 100% ± 0% | 63% ± 11% | +0.37 |
+| Time | 24.5s ± 2.4s | 20.7s ± 2.0s | +3.8s |
+| Tokens | 1998 ± 10 | 1272 ± 232 | +726 |
+
+_Token counts may read as n/a when the active adapter does not expose usage (D-006)._
 ```
 
 Real `delta` block from `benchmark.json`:
 
 ```json
-{"delta": {"pass_rate": "+0.50", "time_seconds": "-19.1", "tokens": "-1758"}}
-```
-
-**What the numbers tell you.** The skill held up on both cases (100%). The baseline got lucky on `fv-1` — it happened to write a file named `variance.csv` this time — but on `fv-2` it reverted to its own schema (`variance_report.csv` + status column) and scored 0%. The high stddev on the without_skill column (±71%) is the tell that the baseline is inconsistent; once you see that, you know the skill is buying you **determinism**, not just peak accuracy.
-
-This is also the iteration where you'd typically make the `evals/evals.json` stricter. We added `quoted-categories-preserved` here as a forcing function for iteration 3.
-
----
-
-### Iteration 3 — improve the body, compare against `old_skill`
-
-**Goal.** Add a harder edge case (`fv-3`: thousands-separators in numbers), then improve the skill body to explicitly handle it. Use `old_skill` as the baseline to measure the lift of the **change**, not the lift of the skill vs nothing.
-
-**Step 1 — snapshot v1:**
-
-```bash
-cp -r /tmp/cas-sim/finance-variance /tmp/cas-sim/finance-variance-v1
-```
-
-**Step 2 — edit `/tmp/cas-sim/finance-variance/SKILL.md`.** The diff vs v1 in plain English:
-
-- Description: mention thousand-separators, quoted categories, zero-budget rows.
-- Body: add a numeric-normalization step ("strip commas, spaces, and leading currency symbols before `float(...)`").
-- Add a "Why these rules matter" section reinforcing the header contract.
-
-**Step 3 — add `fv-3` to `evals/evals.json`** using `/tmp/cas-sim/input-q1-thousands.csv`.
-
-**Step 4 — write `iteration-3/iteration.json`** with the **new** baseline:
-
-```json
 {
-  "skill_path": "/tmp/cas-sim/finance-variance",
-  "old_skill_path": "/tmp/cas-sim/finance-variance-v1",
-  "evals_path": "/tmp/cas-sim/finance-variance/evals/evals.json",
-  "baseline_type": "old_skill",
-  "runs_per_configuration": 1,
-  "iteration": 3,
-  "notes": "Improved skill body: normalization guidance + header-contract reinforcement. Baseline = v1 snapshot to measure the lift of the improvement itself."
+  "delta": {
+    "pass_rate": "+0.37",
+    "time_seconds": "+3.8",
+    "tokens": "+726"
+  }
 }
 ```
 
-The harness validates this against `iteration.schema.json` before any runs start. If you forget `old_skill_path` when `baseline_type=old_skill`, it fails immediately with a clear error:
+**What the numbers tell you.** The skill still achieves 100% pass rate across all three cases. The baseline without the skill is consistent with iteration 1 — 63% average with the same failure modes (inverted variance signs, extra columns, wrong summary format). The formatting fix didn't change pass rates (both iterations were 100%) but confirmed the skill body improvement works: integers instead of floats.
 
-```
-iteration.json schema error: 'old_skill_path' is a required property
-```
+The `without_skill` baseline continues to fail the same assertions it failed in iteration 1 — in eval-2 and eval-3 it produces 6 data rows instead of 5 (adding a `Total` row), and its variance percentage format uses two decimal places (`24.00%` instead of `24.0%`).
 
-**Step 5 — run the dual.** Six runs this time (3 evals × 2 sides). Each takes ~17–20 s with Cursor CLI, total ~2 minutes.
+**`feedback.json`** (iteration 2 — review was not completed):
 
-```bash
-$ uv run python eval-harness/scripts/run_eval.py dual \
-    --iteration 3 \
-    --workspace /tmp/cas-sim/finance-variance-workspace \
-    --timeout 180
+```json
+{
+  "reviews": [],
+  "status": "in_progress"
+}
 ```
 
-Layout after the run (abridged):
+The iteration 2 review cycle was not finished — feedback remains in `in_progress` status with no reviews submitted.
 
-```
-iteration-3/
-├── iteration.json
-├── fv-1/
-│   ├── with_skill/run-1/…
-│   └── old_skill/run-1/…
-├── fv-2/{with_skill,old_skill}/run-1/…
-└── fv-3/
-    ├── with_skill/run-1/outputs/variance.csv
-    └── old_skill/run-1/outputs/variance.csv
-```
-
-**Real result:** both the new skill and v1 produced valid `variance.csv` files for `fv-3` — the executor agent is capable enough to infer the thousands-separator normalization without explicit guidance. The improvement didn't move the pass-rate needle.
-
-`benchmark.md`:
-
-```
-| Metric    | With Skill       | Old Skill       | Delta   |
-|-----------|------------------|-----------------|---------|
-| Pass Rate | 100% ± 0%        | 100% ± 0%       | +0.00   |
-| Time      | 19.1s ± 2.1s     | 17.6s ± 0.6s    | +1.5s   |
-| Tokens    | 918 ± 107        | 839 ± 20        | +79     |
-```
-
-**Phase F — promotion gate intentionally blocks this iteration:**
-
-```bash
-$ uv run python scripts/check_promotion.py --iteration 3 --workspace …
-lift 0.0 pp < min 10 pp
-exit=1
-```
-
-This is the **correct** behavior. The thresholds (`config/thresholds.json`) require a 10pp lift over the baseline; this change didn't deliver it. Realistic decisions from here:
-
-1. **Keep the change** as a defensive improvement (the wording will hold up on future, harder inputs), but don't claim credit for it. Log the result in the iteration `notes`.
-2. **Revert** because the +1.5 s / +79 token overhead isn't worth zero pass-rate gain.
-3. **Harden the eval set** (more cases with missing columns, mixed currencies, etc.) until the difference surfaces, then re-run.
-
-The gate is meant to make that conversation explicit.
+**Phase F — promotion gate:** Would require `require_feedback_complete: true` to be satisfied, which it is not since `feedback.json` has `"status": "in_progress"`. The eval run stopped here.
 
 **Phase — package** (once you're happy):
 
 ```bash
-$ uv run python scripts/package_skill.py /tmp/cas-sim/finance-variance /tmp/cas-sim/dist
+$ uv run python scripts/package_skill.py \
+    /Users/sshukla/Desktop/src/pydantic-agents/.cursor/skills/finance-variance
 🔍 Validating skill...
 ✅ Skill is valid!
   Added: finance-variance/SKILL.md
   Skipped: finance-variance/evals/evals.json
-✅ Successfully packaged skill to: /tmp/cas-sim/dist/finance-variance.skill
+✅ Successfully packaged skill to: ./finance-variance.skill
 ```
 
 `evals/` is **intentionally excluded** from the package — evals are for development, not end users.
@@ -546,104 +669,254 @@ $ uv run python scripts/package_skill.py /tmp/cas-sim/finance-variance /tmp/cas-
 - **Active adapter** (`config/active_agent`): single line, currently `cursor`. Switch to `claude_code` to run the same harness against Claude Code with no other change.
 - **Skill isolation**: enforced by `{{SKILL_CONTENT}}` substitution in `agents/executor.md`. If you write a custom `agent_prompt`, it **must** include this placeholder or isolation is lost.
 
----
+## End-to-end workflow: from intent to packaged skill
 
-## Known gaps and roadmap (TODOs)
+This section describes the complete skill-creation pipeline in generic terms. Each stage includes what happens, what artifacts are produced, and who is responsible. Where helpful, the `csv-dedup` skill (built and validated in this repo) is referenced as a concrete example you can cross-reference.
 
-These are concrete defects and thin spots surfaced by running the full workflow end-to-end against `finance-variance` (see `.cursor/skills/finance-variance-workspace/`). Each item is scoped small enough to land on its own PR and has a rationale so a future maintainer can tell whether it's still relevant. Priorities: **P1** = correctness/gate blocker, **P2** = loop fidelity, **P3** = polish.
+### High-level flow
 
-### P1 — Correctness and gate blockers
+```mermaid
+flowchart TD
+    A[Capture Intent] --> B[Write SKILL.md Draft]
+    B --> C[Author Eval Cases]
+    C --> D["Preflight Validation (Phase A)"]
+    D --> E{Body Iteration Loop}
 
-- [ ] **Validate `feedback.json` inside the iteration gate.** In the last simulation, `iteration-2/feedback.json` was saved with `status: "in_progress"` and `reviews: []` even though the user clicked **Submit All Reviews**. The value fails `feedback.schema.json` (`enum: ["draft","complete"]`), but `scripts/check_iteration.py` doesn't read the file at all — only `check_promotion.py` does, and only by re-reading `status`. Wire feedback schema validation into `check_iteration.py` and fail fast. *Why*: a mis-submitted review is invisible today and silently blocks Phase F later.
-- [ ] **Debug the viewer's "Submit All Reviews" persistence.** Iteration-2 had the user click submit with one populated eval and one empty eval; the resulting file has an empty `reviews[]` array. The viewer opened in the browser, so `generate_review.py` ran — but the submit handler didn't commit either the populated or the empty review. Needs reproduction in `eval-harness/viewer/` (likely a stale `fetch` handler or a write-path bug against the workspace on disk).
-- [ ] **Investigate viewer `run_id` attribution for free-text feedback.** Iter-1's `feedback.json` contains `{"run_id": "eval-3-without_skill-run-1", "feedback": "Looks great, seems to be working well"}`, but the user reports they entered that text while viewing **eval-1**. Either the textarea auto-saves against the last-focused run card rather than the currently-rendered one, or the write is racing a navigation event. Either way the feedback is attached to the wrong run and will mislead the improvement phase. Add a visible "saving to: eval-X/<side>/run-Y" indicator next to the textarea as part of the fix.
-- [ ] **Populate `benchmark.json.metadata` from the live adapter context.** Both iterations shipped `skill_path: "<path/to/skill>"` and `executor_model: "<model-name>"` as literal placeholder strings. `aggregate_benchmark.py` needs to resolve these from (a) the `iteration.json` paths, (b) the adapter's reported model, (c) git HEAD if available. Benchmarks without provenance aren't reproducible.
-- [ ] **Tighten the grader assertions that are subset/substring-based.** In `finance-variance-workspace/grade_iteration.py`, `variance-csv-has-5-cols` uses `expected_cols.issubset(...)` — so the without_skill baseline's 6-column output (adds `status`) passes an "exactly 5 columns" check. `top3-over-budget-in-summary` is similarly a substring scan. The fix isn't in the meta-skill itself but the lesson is: **`agents/grader.md` should call out "exact set vs subset" and "positional presence in a section vs document-wide substring" as common pitfalls**, with worked examples.
+    subgraph bodyLoop ["Body Iteration Loop (max 3 iterations)"]
+        E --> F["Dual Execution (Phase C')"]
+        F --> G[Grade Runs]
+        G --> H["Aggregate Benchmark (Phase D)"]
+        H --> I["Iteration Gate (Phase D')"]
+        I --> J["Human Review (Phase E)"]
+        J --> K["Promotion Gate (Phase F)"]
+        K --> L{Iterate?}
+        L -->|"Yes: snapshot, edit, re-run"| M[Snapshot Skill]
+        M --> N[Edit SKILL.md / evals]
+        N --> D
+    end
 
-### P2 — Loop fidelity
+    L -->|"No: gate passed or user declines"| O{Description Optimization}
 
-- [ ] **Enforce an iteration close-out protocol.** In the simulation the user opted out of iteration 3 after seeing a 100% with_skill pass rate — that's fine by policy ("until satisfied, feedback uniformly positive, or progress stalls"), but the agent left `iteration-2/feedback.json` in `status: "in_progress"` instead of marking it `complete`. When the user says "no more iterations", the skill should: (1) set feedback `status: "complete"`, (2) run the promotion gate, (3) offer description optimization and packaging as explicit next steps before ending the session. Right now step (3) is implicit and gets forgotten.
-- [ ] **Snapshot discipline for `old_skill` comparisons.** `iteration-1-snapshot/` was created but is byte-identical to the current SKILL.md (`diff` returns empty), meaning it was copied **after** the iter-2 edit — and `iteration-2/iteration.json` still uses `baseline_type: "without_skill"`, so the snapshot is unreferenced. The meta-skill should either (a) automate the snapshot (copy into `iteration-N-snapshot/` immediately before edits, and set `baseline_type: "old_skill"` + `old_skill_path` in the next iteration's manifest), or (b) loudly refuse to proceed when the "snapshot before editing" step is skipped. The more informative comparison for iteration 2 would have been *old skill vs new skill*, not *skill vs no-skill*.
-- [ ] **Require new assertions when the skill body changes.** Iter-2 shipped a real fix (`_fmt_num` emits `10000` not `10000.0`, matching the SKILL.md contract that numeric columns are plain numbers), but no assertion tested for it — so the benchmark was identical between iterations (100/62.7, delta +0.37) even though the output files genuinely improved. The skill should prompt: *"This iteration changed [list of files / patterns]. Add at least one assertion that would have failed on the previous iteration and passes on this one, or explicitly acknowledge the change is unmeasured."*
-- [ ] **Analyst pass not happening.** `agents/analyzer.md` describes a pattern-finder (non-discriminating checks, flaky evals, time/token trade-offs) but nothing in the loop actually invokes it; the simulation produced no `analysis.md` or analyst commentary. Either drop the phase from SKILL.md or wire it in as a callable step after aggregation.
-- [ ] **Description optimization phase never offered.** `run_loop.py` is fully built and tested, but the skill finished without authoring a trigger eval or running the loop. When the body-iteration loop ends, the meta-skill should explicitly transition to "Step: description optimization" instead of ending silently.
-- [ ] **Packaging phase never offered.** Same as above for `scripts/package_skill.py`. After promotion passes, offer to produce a `.skill` artifact.
+    subgraph descLoop ["Description Optimization Loop (max 3 iterations)"]
+        O --> P[Generate Trigger Queries]
+        P --> Q[User Reviews Query Set]
+        Q --> R["Run Optimization Loop (run_loop.py)"]
+        R --> S[Apply Best Description]
+    end
 
-### P3 — Polish and progressive disclosure
-
-- [ ] **Stop duplicating code between SKILL.md and `scripts/`.** `finance-variance/SKILL.md` inlines the entire 85-line `compute_variance.py`, and `scripts/compute_variance.py` holds a near-duplicate. Every with_skill run re-ships the full script in the prompt (~1800 tokens). The progressive-disclosure pattern from our own SKILL.md says bundled scripts "can execute without loading" — prefer a one-liner like *"Run `scripts/compute_variance.py` (bundled with the skill)"* and keep the body focused on intent, formats, edge cases. Update the author-side guidance in `.cursor/skills/create-agent-skill/SKILL.md` §"Progressive disclosure" with a worked before/after.
-- [ ] **Aggregator under-reports `tool_calls`.** Every row in both iterations' `benchmark.json` has `tool_calls: 0`, but the transcripts for each run clearly show 3+ tool calls (write `budget.csv`, write `compute_variance.py`, run `python3 …`). `aggregate_benchmark.py`'s Cursor-adapter parser isn't counting `tool_call.subtype="started"` events from `transcript.jsonl`. Low-stakes for pass-rate math but it's a visible zero on every dashboard.
-- [ ] **Always produce a `--static` HTML export alongside the live viewer.** The browser viewer opened fine, but if a reviewer loses their session or wants to share a snapshot, there's nothing on disk. Change `generate_review.py` to emit `iteration-N/review.html` by default, and let `--no-static` opt out.
-- [ ] **Name `runs_per_configuration` explicitly in the iteration manifest template.** The schema allows it and the code reads it, but the minimal manifest example in SKILL.md omits it, and every simulation so far ran with the default of 1. Add `"runs_per_configuration": 1` to the example and a one-line comment explaining when to raise it (flaky skills, high-variance prompts).
-
----
-
-## Runs vs iterations (FAQ)
-
-This comes up every time. Three nested loops, from innermost to outermost:
-
-1. **Run** — *one execution of one eval on one side.* A unit of work the adapter performs. Its artifacts live in `iteration-N/<eval-id>/<side>/run-{r}/` and are exactly: `outputs/`, `transcript.jsonl`, `timing.json`, `grading.json`. The integer `r` starts at 1 and goes up to `runs_per_configuration`.
-
-2. **Configuration** — *a (side, eval) pair.* Example: `(eval-2, with_skill)`. For each configuration you do `runs_per_configuration` runs. With the default value `1`, "configuration" and "run" are indistinguishable on disk. The word exists because the benchmark aggregates *across runs within a configuration* (min/max/stddev) before aggregating across configurations.
-
-3. **Iteration** — *one full pass of the eval set over the whole candidate/baseline pair, producing one `benchmark.json`.* Living in `iteration-N/`. You cut a new iteration whenever you change the skill body or the eval set and want a fresh measurement.
-
-### Why the simulation only had one run per eval
-
-`iteration.json` in both iterations of the finance-variance simulation contained:
-
-```json
-"runs_per_configuration": 1
+    S --> T["Package (.skill artifact)"]
 ```
 
-So for each of 3 evals × 2 sides (`with_skill`, `without_skill`) = **6 runs per iteration**. Two iterations produced 12 runs total, which matches `find .../finance-variance-workspace -type d -name 'run-*' | wc -l` = 12.
+### Stage 1: Capture intent and interview
 
-### When to raise `runs_per_configuration` above 1
+The agent reads the `create-agent-skill` SKILL.md, then works with the user to nail down:
 
-Agents are non-deterministic. A single run can hide:
+- **What** the skill does (input format, output files, transformation logic)
+- **When** it should trigger (phrases, near-misses, edge cases)
+- **How** success will be measured (file existence, value correctness, format compliance)
 
-- **Flakiness** — the model occasionally writes a 6-column CSV instead of 5, or varies the decimal count.
-- **Variance sensitivity** — timing and token numbers are noisy from 1 sample; 5 samples give you a usable stddev.
-- **Edge behavior in baselines** — without_skill is especially variable because there's no pinned recipe.
+The agent may ask clarifying questions. No files are created yet.
 
-Practical heuristics:
+> **csv-dedup example:** The user specified "given a CSV with duplicate rows, produce `dedup.csv` and `dedup-report.md`" with 3 edge cases: clean duplicates, whitespace-trimmed comparison, and case-insensitive values.
 
-- `1` — **default**. Use when the skill is deterministic (wraps a script) and you're iterating fast on the body.
-- `3` — first scale-up when you want to see stddev in `benchmark.json`. The aggregator's `stddev` fields become meaningful.
-- `5–10` — use when debugging a specific flaky eval, or when the promotion gate is on a knife's edge and you need a confidence interval on the lift.
+### Stage 2: Write the skill draft
 
-You raise it per-iteration in `iteration.json`; you don't have to change it globally. The filesystem layout simply adds `run-2/`, `run-3/`, …; the aggregator handles the rest.
+The agent creates the skill directory with:
 
-### The distinction in one line
+- **`SKILL.md`** — YAML frontmatter (`name`, `description`) + markdown body with instructions
+- **`scripts/`** (optional) — bundled helper scripts if the skill benefits from deterministic code
 
-> A **run** is "the adapter ran the agent once." A **configuration** is "this skill variant, this eval, all its repeated runs." An **iteration** is "one version of the skill measured against the whole eval set."
+```
+<skill-name>/
+├── SKILL.md
+├── evals/           # (created in Stage 3)
+│   └── evals.json
+└── scripts/         # (optional)
+    └── helper.py
+```
 
-## Troubleshooting
+> **csv-dedup example:** `csv-dedup/SKILL.md` (117 lines) + `scripts/dedup_csv.py` (100 lines) handling whitespace trimming, case-insensitive comparison, and RFC-4180 quoted fields.
 
-| Symptom                                                                         | Likely cause                                                         |
-|---------------------------------------------------------------------------------|----------------------------------------------------------------------|
-| `iteration.json schema error: …`                                                | Missing a required field (e.g. `old_skill_path` with `old_skill`).   |
-| `missing iteration-N/benchmark.json`                                            | You skipped Phase D or it failed. Re-run `aggregate_benchmark.py`.   |
-| `benchmark.json schema: None is not of type 'integer'` (on older revisions)     | You're on a pre-fix schema. Pull the latest — `tokens` now allows `null`. |
-| `assertion_id mismatch in fv-X: with_skill#1=[…] vs without_skill#1=[…]`        | Your grader emitted different assertion sets per side. Always emit the full set, with `passed=false` when the artifact is missing. |
-| `ModuleNotFoundError: No module named 'scripts'` from `package_skill.py`        | Old revision; fixed by the `sys.path` bootstrap at the top of the script. |
-| `without_skill` suspiciously scores the same as `with_skill`                     | Check the adapter is actually receiving `skill_content=None` for the baseline (`fake_adapter.invocations` in tests verifies this). |
-| Trigger eval returns `False` even for obvious matches                           | Adapter's `evaluate_trigger` reads assistant text, not stdout. Ensure the CLI is emitting `stream-json` and a final `result` event. |
+### Stage 3: Author eval cases (HITL gate)
 
----
+The agent drafts 2-4 realistic test prompts and presents them to the user for approval. This is a **human-in-the-loop gate** — evals must not run until the user confirms.
 
-## For contributors
+Each eval case in `evals/evals.json` contains:
+- **`prompt`** — what a real user would type
+- **`expectations`** — structured assertions with `assertion_id`, `text`, and `critical` flag
+- **`files`** — optional input files
 
-- Add a new agent: create `adapters/<name>/{adapter.py,config.json,recipes.md}`, implement the `Adapter` protocol (8 methods/attrs), run `pytest tests/create-agent-skill/unit -k adapter` to verify protocol compliance.
-- Add a new schema: drop `<name>.schema.json` under `references/schemas/`, wire validation into `check_iteration.py` (for per-run artifacts) or the producing script, and add a round-trip test to `tests/create-agent-skill/unit/test_schemas.py`.
-- Change an agent prompt: keep it templated on `{{USER_INPUT}}` and `{{SKILL_CONTENT}}` if it's for dual execution.
+> **csv-dedup example:** 3 initial evals (clean duplicates, whitespace edge case, mixed-case headers), later expanded to 4 in iteration 2 (added quoted-comma fields). See `csv-dedup/evals/evals.json`.
 
-Run the full suite before a PR:
+### Stage 4: Preflight validation (Phase A)
 
 ```bash
-uv run pytest tests/create-agent-skill -q
+python scripts/quick_validate.py <path-to-skill>
 ```
+
+Validates SKILL.md frontmatter (name, description format) and, when present, schema-validates `evals/evals.json` against `references/schemas/evals.schema.json`. Run this after every edit to the skill.
+
+### Stage 5: Body iteration loop
+
+This is the core evaluation cycle. Each iteration follows phases C' through F in sequence.
+
+#### 5a. Write iteration manifest
+
+Create `iteration-N/iteration.json` with skill path, eval path, and baseline type:
+
+```json
+{
+  "skill_path": "/abs/path/to/<skill-name>",
+  "evals_path": "/abs/path/to/<skill-name>/evals/evals.json",
+  "baseline_type": "without_skill",
+  "runs_per_configuration": 1
+}
+```
+
+For `old_skill` baselines (comparing against a prior snapshot), also set `old_skill_path`.
+
+#### 5b. Dual execution (Phase C')
+
+```bash
+python eval-harness/scripts/run_eval.py dual --iteration N --workspace <workspace>
+```
+
+Launches `with_skill` and `without_skill` (or `old_skill`) runs **in parallel** for every eval case. Each run produces:
+- `outputs/` — the files the agent generated
+- `transcript.jsonl` — full execution log
+- `timing.json` — duration, token counts
+
+> **csv-dedup example:** Iteration 1 ran 3 evals x 2 sides = 6 runs. Iteration 2 ran 4 evals x 2 sides = 8 runs.
+
+#### 5c. Grade each run
+
+Either a **programmatic grading script** (preferred for deterministic checks) or a **grader subagent** (via `agents/grader.md`) evaluates each assertion against the outputs and writes `grading.json` per run.
+
+> **csv-dedup example:** `grade_all.py` at the workspace root checks file existence, row counts, whitespace preservation, header order, and report format programmatically.
+
+#### 5d. Aggregate and gate (Phases D, D')
+
+```bash
+python eval-harness/scripts/aggregate_benchmark.py --iteration N --workspace <ws> --skill-name <name>
+python scripts/check_iteration.py --iteration N --workspace <ws>
+```
+
+Produces `benchmark.json` (machine-readable) and `benchmark.md` (human-readable table). The iteration gate validates all artifacts against JSON schemas.
+
+> **csv-dedup example:** Iteration 1 benchmark: 100% vs 100% (evals too easy). Iteration 2 benchmark: 100% vs 84% (+16pp lift) after adding harder assertions.
+
+#### 5e. Human review (Phase E)
+
+```bash
+python eval-harness/viewer/generate_review.py <ws> --iteration N --skill-name <name> --benchmark <ws>/iteration-N/benchmark.json
+```
+
+Opens a browser-based viewer with:
+- **Outputs tab** — prompt, generated files, formal grades, feedback textarea per run
+- **Benchmark tab** — pass rates, timing, token usage, per-eval breakdowns
+
+The user reviews and clicks **"Submit All Reviews"**, which writes `feedback.json` with `"status": "complete"`.
+
+#### 5f. Promotion gate (Phase F)
+
+```bash
+python scripts/check_promotion.py --iteration N --workspace <ws>
+```
+
+Checks against thresholds in `config/thresholds.json`:
+- Candidate pass rate >= 85%
+- Lift vs baseline >= 10pp
+- 0 critical failures in the candidate
+- `feedback.json` status is `"complete"`
+
+If the gate passes and the user is satisfied, the body loop ends. If the gate fails or the user wants improvements, proceed to the next iteration.
+
+#### 5g. Between iterations: snapshot, then edit
+
+Before making any changes for the next iteration:
+
+1. **Snapshot** the current skill to `<workspace>/iteration-N-snapshot/` — this preserves the exact version that produced the current results
+2. **Edit** the SKILL.md body, bundled scripts, or eval cases based on feedback
+3. Re-run preflight validation (Phase A)
+4. Start the next iteration at step 5a
+
+> **csv-dedup example:** `iteration-1-snapshot/SKILL.md` preserves the pre-edit version (no whitespace-preservation guidance). The current `csv-dedup/SKILL.md` adds explicit "trim for comparison only, preserve originals" instructions and `csv.DictReader` guidance. The diff confirms the snapshot captured the right state.
+
+### Stage 6: Description optimization loop
+
+After the body is stable, the description optimization loop tunes the `description` field in SKILL.md frontmatter so the skill triggers reliably for real user queries.
+
+#### 6a. Generate trigger eval queries
+
+The agent creates ~20 realistic queries — 10 that **should** trigger the skill and 10 that **should not** (near-misses that share keywords but need different tools). These are saved as a JSON file.
+
+> **csv-dedup example:** `trigger-eval.json` (82 lines) includes queries like *"i have this csv export from salesforce and there are definitely duplicate entries"* (should trigger) and *"can you sort my CSV alphabetically by the last name column"* (should not).
+
+#### 6b. User reviews the query set
+
+The agent fills the HTML template from `assets/eval_review.html` and opens it for the user to edit labels and export the finalized set.
+
+> **csv-dedup example:** `trigger-eval-review.html` was generated at the workspace root.
+
+#### 6c. Run the optimization loop
+
+```bash
+python eval-harness/scripts/run_loop.py \
+  --eval-set <trigger-eval.json> \
+  --skill-path <skill> \
+  --model <model-id> \
+  --max-iterations 3 \
+  --verbose
+```
+
+Iterates on the description, testing each candidate against the query set. Reports train/test accuracy per iteration. Converges when accuracy plateaus or hits the iteration cap.
+
+> **csv-dedup example:** The loop converged on iteration 1 with 100% accuracy (12/12 train, 8/8 test) — the original description was already well-calibrated.
+
+#### 6d. Apply the best description
+
+The agent takes `best_description` from the loop output, updates the SKILL.md frontmatter, and shows a before/after diff.
+
+### Stage 7: Package
+
+```bash
+python scripts/package_skill.py <path/to/skill-folder>
+```
+
+Produces a `.skill` zip artifact. The `evals/` directory is intentionally excluded — evals are for development, not end users.
 
 ---
 
-*Everything in the end-to-end example is reproducible against Cursor CLI `2026.04.17-787b533` or later. If your numbers differ by more than ±20 %, suspect a CLI change first and an environment issue second.*
+## Artifacts produced at each stage
+
+| Stage | Artifacts | Location |
+|-------|-----------|----------|
+| Draft | `SKILL.md`, `scripts/` (optional) | `<skill>/` |
+| Eval authoring | `evals/evals.json` | `<skill>/evals/` |
+| Preflight | stdout ("Skill is valid!") | terminal |
+| Dual execution | `outputs/`, `transcript.jsonl`, `timing.json` per run | `<workspace>/iteration-N/<eval-id>/<side>/run-1/` |
+| Grading | `grading.json` per run | same as above |
+| Aggregation | `benchmark.json`, `benchmark.md` | `<workspace>/iteration-N/` |
+| Human review | `feedback.json` | `<workspace>/iteration-N/` |
+| Snapshot | full skill copy | `<workspace>/iteration-N-snapshot/` |
+| Description opt | `trigger-eval.json`, `trigger-eval-review.html` | `<workspace>/` |
+| Package | `<skill-name>.skill` | working directory |
+
+---
+
+## Practical considerations
+
+These observations come from building and validating two skills (`finance-variance` and `csv-dedup`) through the full pipeline.
+
+- **Iteration 1 can produce false confidence.** If all evals pass for both `with_skill` and `without_skill` (0pp lift), the evals are too easy — they don't discriminate. This happened with `csv-dedup` iteration 1 (100% vs 100%). The fix is to harden the eval set: add assertions that test exact output format, edge-case handling, or behaviors the baseline is unlikely to get right. In `csv-dedup`, adding `original-whitespace-preserved` (a critical assertion the baseline fails) and a fourth eval with quoted-comma fields produced a meaningful +16pp lift in iteration 2.
+
+- **The description optimization loop may converge immediately.** If the frontmatter description is already well-written (covers trigger phrases and near-misses), `run_loop.py` finishes in 1 iteration with 100% accuracy. This is correct behavior, not a failure. The `csv-dedup` description triggered correctly for all 20 test queries on the first pass.
+
+- **The `require_feedback_complete` threshold matters.** The promotion gate in `config/thresholds.json` requires `feedback.json` to have `"status": "complete"`. If you skip the viewer review or the feedback file is missing, the gate will fail. Always click "Submit All Reviews" in the viewer before proceeding.
+
+- **Eval IDs are flexible.** The harness accepts both string IDs (`"eval-1"`, `"eval-2"`) and numeric IDs (`1`, `2`, `3`). The `finance-variance` skill used string IDs; `csv-dedup` used numeric IDs. Both work correctly.
+
+- **Bundled scripts pay for themselves.** When the skill includes a deterministic helper script (e.g., `compute_variance.py`, `dedup_csv.py`), the `with_skill` agent consistently produces correct outputs. Without the script, baseline agents reinvent the logic and introduce subtle errors (inverted signs, trimmed whitespace, non-standard formats). The cost is a few extra tokens and seconds per run; the gain is near-perfect reproducibility.
+
+- **Programmatic grading scripts are reusable.** The `grade_all.py` / `grade_iteration.py` scripts written during evaluation can be re-run on any iteration. For skills with deterministic outputs, prefer these over grader subagents — they are faster, cheaper, and perfectly reproducible.
+

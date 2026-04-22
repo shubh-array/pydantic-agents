@@ -1,0 +1,37 @@
+{
+  "eval_id": "4",
+  "skill_name": "csv-dedup",
+  "prompt": "I exported some customer data and there are duplicate records. The addresses have commas in them so the CSV uses quoted fields \u2014 please deduplicate it and produce dedup.csv and dedup-report.md.\n\n```\nName,Address,Score\n\"Smith, John\",\"123 Main St, New York, NY\",95\n\"Doe, Jane\",\"456 Oak Ave, Chicago, IL\",87\n\"Smith, John\",\"123 Main St, New York, NY\",95\n\"Lee, Sam\",\"789 Pine Rd, Boston, MA\",91\n\"Doe, Jane\",\"456 Oak Ave, Chicago, IL\",87\n```",
+  "expectations": [
+    {
+      "assertion_id": "dedup-csv-exists",
+      "text": "A file named dedup.csv exists in the outputs directory",
+      "critical": true
+    },
+    {
+      "assertion_id": "dedup-report-exists",
+      "text": "A file named dedup-report.md exists in the outputs directory",
+      "critical": true
+    },
+    {
+      "assertion_id": "quoted-fields-correct-row-count",
+      "text": "dedup.csv contains exactly 3 data rows: Smith John, Doe Jane, and Lee Sam \u2014 quoted-comma fields must be parsed as single cells, not split",
+      "critical": true
+    },
+    {
+      "assertion_id": "report-shows-2-removed",
+      "text": "dedup-report.md reports that exactly 2 duplicates were removed",
+      "critical": true
+    },
+    {
+      "assertion_id": "quoted-headers-preserved",
+      "text": "dedup.csv preserves the original column headers: Name, Address, Score",
+      "critical": false
+    },
+    {
+      "assertion_id": "report-uses-standard-title",
+      "text": "dedup-report.md starts with the heading '# CSV Dedup Report'",
+      "critical": false
+    }
+  ]
+}

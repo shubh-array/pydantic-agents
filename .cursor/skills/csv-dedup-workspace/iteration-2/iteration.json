@@ -1,0 +1,8 @@
+{
+  "skill_path": "/Users/sshukla/Desktop/src/pydantic-agents/.cursor/skills/csv-dedup",
+  "evals_path": "/Users/sshukla/Desktop/src/pydantic-agents/.cursor/skills/csv-dedup/evals/evals.json",
+  "baseline_type": "without_skill",
+  "runs_per_configuration": 1,
+  "iteration": 2,
+  "notes": "Iteration 2: harder evals — added original-whitespace-preserved assertion (baseline fails this), stricter report-title check, and new eval 4 with quoted-comma fields. Fixed table header bug in bundled script."
+}

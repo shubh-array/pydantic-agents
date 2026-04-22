@@ -99,6 +99,8 @@ Save results to `{outputs_dir}/../grading.json` (sibling to outputs_dir).
 - The evidence is superficial — the expectation is technically satisfied but the underlying task outcome is wrong or incomplete
 - The output appears to meet the expectation by coincidence rather than by actually doing the work
 
+**Exact-match language matters**: when an assertion says "exactly N columns," a file with N+1 columns should FAIL — having the required columns as a subset is not the same as having exactly those columns. Apply the same precision to words like "only," "no other," and "must not contain."
+
 **When uncertain**: The burden of proof to pass is on the expectation.
 
 ### Step 8: Read Executor Metrics and Timing

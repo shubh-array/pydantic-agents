@@ -1,0 +1,658 @@
+{
+  "metadata": {
+    "skill_name": "csv-dedup",
+    "skill_path": "<path/to/skill>",
+    "executor_model": "<model-name>",
+    "analyzer_model": "<model-name>",
+    "timestamp": "2026-04-22T20:54:57Z",
+    "evals_run": [
+      "1",
+      "2",
+      "3",
+      "4"
+    ],
+    "runs_per_configuration": 1
+  },
+  "runs": [
+    {
+      "eval_id": "1",
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 7,
+        "failed": 0,
+        "total": 7,
+        "time_seconds": 12.801,
+        "tokens": 614,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "assertion_id": "dedup-csv-exists",
+          "text": "A file named dedup.csv exists in the outputs directory",
+          "passed": true,
+          "evidence": "dedup.csv found",
+          "critical": true
+        },
+        {
+          "assertion_id": "dedup-report-exists",
+          "text": "A file named dedup-report.md exists in the outputs directory",
+          "passed": true,
+          "evidence": "dedup-report.md found",
+          "critical": true
+        },
+        {
+          "assertion_id": "correct-row-count",
+          "text": "dedup.csv contains exactly 4 data rows (header + 4 rows): Alice, Bob, Carol, Dave",
+          "passed": true,
+          "evidence": "dedup.csv has 4 data rows (expected 4)",
+          "critical": true
+        },
+        {
+          "assertion_id": "report-shows-2-removed",
+          "text": "dedup-report.md reports that exactly 2 duplicates were removed",
+          "passed": true,
+          "evidence": "Report shows 2 duplicates removed (expected 2)",
+          "critical": true
+        },
+        {
+          "assertion_id": "removed-table-present",
+          "text": "dedup-report.md includes a table listing the removed duplicate rows (row numbers and content)",
+          "passed": true,
+          "evidence": "Removed-rows table found in report",
+          "critical": false
+        },
+        {
+          "assertion_id": "column-order-preserved",
+          "text": "dedup.csv preserves the original column order: Name, Age, City",
+          "passed": true,
+          "evidence": "Headers: ['Name', 'Age', 'City']",
+          "critical": false
+        },
+        {
+          "assertion_id": "report-uses-standard-title",
+          "text": "dedup-report.md starts with the heading '# CSV Dedup Report'",
+          "passed": true,
+          "evidence": "Report starts with '# CSV Dedup Report'",
+          "critical": false
+        }
+      ],
+      "expectation_summary": {
+        "assertion_ids": [
+          "dedup-csv-exists",
+          "dedup-report-exists",
+          "correct-row-count",
+          "report-shows-2-removed",
+          "removed-table-present",
+          "column-order-preserved",
+          "report-uses-standard-title"
+        ],
+        "critical_total": 4,
+        "critical_failed": 0
+      },
+      "notes": []
+    },
+    {
+      "eval_id": "2",
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 6,
+        "failed": 0,
+        "total": 6,
+        "time_seconds": 24.691,
+        "tokens": 975,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "assertion_id": "dedup-csv-exists",
+          "text": "A file named dedup.csv exists in the outputs directory",
+          "passed": true,
+          "evidence": "dedup.csv found",
+          "critical": true
+        },
+        {
+          "assertion_id": "dedup-report-exists",
+          "text": "A file named dedup-report.md exists in the outputs directory",
+          "passed": true,
+          "evidence": "dedup-report.md found",
+          "critical": true
+        },
+        {
+          "assertion_id": "whitespace-trimmed-dedup",
+          "text": "dedup.csv contains exactly 3 data rows \u2014 because whitespace-trimmed cells correctly identify the duplicates",
+          "passed": true,
+          "evidence": "dedup.csv has 3 data rows (expected 3)",
+          "critical": true
+        },
+        {
+          "assertion_id": "report-shows-3-removed",
+          "text": "dedup-report.md reports that exactly 3 duplicates were removed",
+          "passed": true,
+          "evidence": "Report shows 3 duplicates removed (expected 3)",
+          "critical": true
+        },
+        {
+          "assertion_id": "original-whitespace-preserved",
+          "text": "dedup.csv preserves the original cell values from the first occurrence \u2014 the first row of data should have '  Alice ' (with leading/trailing spaces) NOT 'Alice', because trimming is only for comparison, not for output",
+          "passed": true,
+          "evidence": "First data row name field: '  Alice ' \u2014 has leading spaces (original preserved)",
+          "critical": true
+        },
+        {
+          "assertion_id": "removed-table-present",
+          "text": "dedup-report.md includes a table of removed rows with their original row numbers",
+          "passed": true,
+          "evidence": "Removed-rows table found in report",
+          "critical": false
+        }
+      ],
+      "expectation_summary": {
+        "assertion_ids": [
+          "dedup-csv-exists",
+          "dedup-report-exists",
+          "whitespace-trimmed-dedup",
+          "report-shows-3-removed",
+          "original-whitespace-preserved",
+          "removed-table-present"
+        ],
+        "critical_total": 5,
+        "critical_failed": 0
+      },
+      "notes": []
+    },
+    {
+      "eval_id": "3",
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 6,
+        "failed": 0,
+        "total": 6,
+        "time_seconds": 13.68,
+        "tokens": 632,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "assertion_id": "dedup-csv-exists",
+          "text": "A file named dedup.csv exists in the outputs directory",
+          "passed": true,
+          "evidence": "dedup.csv found",
+          "critical": true
+        },
+        {
+          "assertion_id": "dedup-report-exists",
+          "text": "A file named dedup-report.md exists in the outputs directory",
+          "passed": true,
+          "evidence": "dedup-report.md found",
+          "critical": true
+        },
+        {
+          "assertion_id": "case-insensitive-dedup",
+          "text": "dedup.csv contains exactly 2 data rows (Alice and Bob) \u2014 case-insensitive comparison on values means ALICE/alice/Alice are all the same, as are Bob/BOB",
+          "passed": true,
+          "evidence": "dedup.csv has 2 data rows (expected 2)",
+          "critical": true
+        },
+        {
+          "assertion_id": "report-shows-3-removed",
+          "text": "dedup-report.md reports that exactly 3 duplicates were removed",
+          "passed": true,
+          "evidence": "Report shows 3 duplicates removed (expected 3)",
+          "critical": true
+        },
+        {
+          "assertion_id": "headers-preserved-as-is",
+          "text": "dedup.csv preserves the original mixed-case headers: Name, EMAIL, City",
+          "passed": true,
+          "evidence": "Headers: ['Name', 'EMAIL', 'City'] (expected ['Name', 'EMAIL', 'City'])",
+          "critical": true
+        },
+        {
+          "assertion_id": "report-uses-standard-title",
+          "text": "dedup-report.md starts with the heading '# CSV Dedup Report'",
+          "passed": true,
+          "evidence": "Report starts with '# CSV Dedup Report'",
+          "critical": false
+        }
+      ],
+      "expectation_summary": {
+        "assertion_ids": [
+          "dedup-csv-exists",
+          "dedup-report-exists",
+          "case-insensitive-dedup",
+          "report-shows-3-removed",
+          "headers-preserved-as-is",
+          "report-uses-standard-title"
+        ],
+        "critical_total": 5,
+        "critical_failed": 0
+      },
+      "notes": []
+    },
+    {
+      "eval_id": "4",
+      "configuration": "with_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 1.0,
+        "passed": 6,
+        "failed": 0,
+        "total": 6,
+        "time_seconds": 13.243,
+        "tokens": 648,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "assertion_id": "dedup-csv-exists",
+          "text": "A file named dedup.csv exists in the outputs directory",
+          "passed": true,
+          "evidence": "dedup.csv found",
+          "critical": true
+        },
+        {
+          "assertion_id": "dedup-report-exists",
+          "text": "A file named dedup-report.md exists in the outputs directory",
+          "passed": true,
+          "evidence": "dedup-report.md found",
+          "critical": true
+        },
+        {
+          "assertion_id": "quoted-fields-correct-row-count",
+          "text": "dedup.csv contains exactly 3 data rows: Smith John, Doe Jane, and Lee Sam \u2014 quoted-comma fields must be parsed as single cells, not split",
+          "passed": true,
+          "evidence": "dedup.csv has 3 data rows (expected 3 with quoted-comma fields)",
+          "critical": true
+        },
+        {
+          "assertion_id": "report-shows-2-removed",
+          "text": "dedup-report.md reports that exactly 2 duplicates were removed",
+          "passed": true,
+          "evidence": "Report shows 2 duplicates removed (expected 2)",
+          "critical": true
+        },
+        {
+          "assertion_id": "quoted-headers-preserved",
+          "text": "dedup.csv preserves the original column headers: Name, Address, Score",
+          "passed": true,
+          "evidence": "Headers: ['Name', 'Address', 'Score']",
+          "critical": false
+        },
+        {
+          "assertion_id": "report-uses-standard-title",
+          "text": "dedup-report.md starts with the heading '# CSV Dedup Report'",
+          "passed": true,
+          "evidence": "Report starts with '# CSV Dedup Report'",
+          "critical": false
+        }
+      ],
+      "expectation_summary": {
+        "assertion_ids": [
+          "dedup-csv-exists",
+          "dedup-report-exists",
+          "quoted-fields-correct-row-count",
+          "report-shows-2-removed",
+          "quoted-headers-preserved",
+          "report-uses-standard-title"
+        ],
+        "critical_total": 4,
+        "critical_failed": 0
+      },
+      "notes": []
+    },
+    {
+      "eval_id": "1",
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.86,
+        "passed": 6,
+        "failed": 1,
+        "total": 7,
+        "time_seconds": 10.33,
+        "tokens": 518,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "assertion_id": "dedup-csv-exists",
+          "text": "A file named dedup.csv exists in the outputs directory",
+          "passed": true,
+          "evidence": "dedup.csv found",
+          "critical": true
+        },
+        {
+          "assertion_id": "dedup-report-exists",
+          "text": "A file named dedup-report.md exists in the outputs directory",
+          "passed": true,
+          "evidence": "dedup-report.md found",
+          "critical": true
+        },
+        {
+          "assertion_id": "correct-row-count",
+          "text": "dedup.csv contains exactly 4 data rows (header + 4 rows): Alice, Bob, Carol, Dave",
+          "passed": true,
+          "evidence": "dedup.csv has 4 data rows (expected 4)",
+          "critical": true
+        },
+        {
+          "assertion_id": "report-shows-2-removed",
+          "text": "dedup-report.md reports that exactly 2 duplicates were removed",
+          "passed": true,
+          "evidence": "Report shows 2 duplicates removed (expected 2)",
+          "critical": true
+        },
+        {
+          "assertion_id": "removed-table-present",
+          "text": "dedup-report.md includes a table listing the removed duplicate rows (row numbers and content)",
+          "passed": true,
+          "evidence": "Removed-rows table found in report",
+          "critical": false
+        },
+        {
+          "assertion_id": "column-order-preserved",
+          "text": "dedup.csv preserves the original column order: Name, Age, City",
+          "passed": true,
+          "evidence": "Headers: ['Name', 'Age', 'City']",
+          "critical": false
+        },
+        {
+          "assertion_id": "report-uses-standard-title",
+          "text": "dedup-report.md starts with the heading '# CSV Dedup Report'",
+          "passed": false,
+          "evidence": "Report does NOT start with '# CSV Dedup Report'",
+          "critical": false
+        }
+      ],
+      "expectation_summary": {
+        "assertion_ids": [
+          "dedup-csv-exists",
+          "dedup-report-exists",
+          "correct-row-count",
+          "report-shows-2-removed",
+          "removed-table-present",
+          "column-order-preserved",
+          "report-uses-standard-title"
+        ],
+        "critical_total": 4,
+        "critical_failed": 0
+      },
+      "notes": []
+    },
+    {
+      "eval_id": "2",
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.83,
+        "passed": 5,
+        "failed": 1,
+        "total": 6,
+        "time_seconds": 12.725,
+        "tokens": 665,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "assertion_id": "dedup-csv-exists",
+          "text": "A file named dedup.csv exists in the outputs directory",
+          "passed": true,
+          "evidence": "dedup.csv found",
+          "critical": true
+        },
+        {
+          "assertion_id": "dedup-report-exists",
+          "text": "A file named dedup-report.md exists in the outputs directory",
+          "passed": true,
+          "evidence": "dedup-report.md found",
+          "critical": true
+        },
+        {
+          "assertion_id": "whitespace-trimmed-dedup",
+          "text": "dedup.csv contains exactly 3 data rows \u2014 because whitespace-trimmed cells correctly identify the duplicates",
+          "passed": true,
+          "evidence": "dedup.csv has 3 data rows (expected 3)",
+          "critical": true
+        },
+        {
+          "assertion_id": "report-shows-3-removed",
+          "text": "dedup-report.md reports that exactly 3 duplicates were removed",
+          "passed": true,
+          "evidence": "Report shows 3 duplicates removed (expected 3)",
+          "critical": true
+        },
+        {
+          "assertion_id": "original-whitespace-preserved",
+          "text": "dedup.csv preserves the original cell values from the first occurrence \u2014 the first row of data should have '  Alice ' (with leading/trailing spaces) NOT 'Alice', because trimming is only for comparison, not for output",
+          "passed": false,
+          "evidence": "First data row name field: 'Alice' \u2014 TRIMMED (original whitespace lost)",
+          "critical": true
+        },
+        {
+          "assertion_id": "removed-table-present",
+          "text": "dedup-report.md includes a table of removed rows with their original row numbers",
+          "passed": true,
+          "evidence": "Removed-rows table found in report",
+          "critical": false
+        }
+      ],
+      "expectation_summary": {
+        "assertion_ids": [
+          "dedup-csv-exists",
+          "dedup-report-exists",
+          "whitespace-trimmed-dedup",
+          "report-shows-3-removed",
+          "original-whitespace-preserved",
+          "removed-table-present"
+        ],
+        "critical_total": 5,
+        "critical_failed": 1
+      },
+      "notes": []
+    },
+    {
+      "eval_id": "3",
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.83,
+        "passed": 5,
+        "failed": 1,
+        "total": 6,
+        "time_seconds": 16.873,
+        "tokens": 832,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "assertion_id": "dedup-csv-exists",
+          "text": "A file named dedup.csv exists in the outputs directory",
+          "passed": true,
+          "evidence": "dedup.csv found",
+          "critical": true
+        },
+        {
+          "assertion_id": "dedup-report-exists",
+          "text": "A file named dedup-report.md exists in the outputs directory",
+          "passed": true,
+          "evidence": "dedup-report.md found",
+          "critical": true
+        },
+        {
+          "assertion_id": "case-insensitive-dedup",
+          "text": "dedup.csv contains exactly 2 data rows (Alice and Bob) \u2014 case-insensitive comparison on values means ALICE/alice/Alice are all the same, as are Bob/BOB",
+          "passed": true,
+          "evidence": "dedup.csv has 2 data rows (expected 2)",
+          "critical": true
+        },
+        {
+          "assertion_id": "report-shows-3-removed",
+          "text": "dedup-report.md reports that exactly 3 duplicates were removed",
+          "passed": true,
+          "evidence": "Report shows 3 duplicates removed (expected 3)",
+          "critical": true
+        },
+        {
+          "assertion_id": "headers-preserved-as-is",
+          "text": "dedup.csv preserves the original mixed-case headers: Name, EMAIL, City",
+          "passed": true,
+          "evidence": "Headers: ['Name', 'EMAIL', 'City'] (expected ['Name', 'EMAIL', 'City'])",
+          "critical": true
+        },
+        {
+          "assertion_id": "report-uses-standard-title",
+          "text": "dedup-report.md starts with the heading '# CSV Dedup Report'",
+          "passed": false,
+          "evidence": "Report does NOT start with '# CSV Dedup Report'",
+          "critical": false
+        }
+      ],
+      "expectation_summary": {
+        "assertion_ids": [
+          "dedup-csv-exists",
+          "dedup-report-exists",
+          "case-insensitive-dedup",
+          "report-shows-3-removed",
+          "headers-preserved-as-is",
+          "report-uses-standard-title"
+        ],
+        "critical_total": 5,
+        "critical_failed": 0
+      },
+      "notes": []
+    },
+    {
+      "eval_id": "4",
+      "configuration": "without_skill",
+      "run_number": 1,
+      "result": {
+        "pass_rate": 0.83,
+        "passed": 5,
+        "failed": 1,
+        "total": 6,
+        "time_seconds": 13.61,
+        "tokens": 663,
+        "tool_calls": 0,
+        "errors": 0
+      },
+      "expectations": [
+        {
+          "assertion_id": "dedup-csv-exists",
+          "text": "A file named dedup.csv exists in the outputs directory",
+          "passed": true,
+          "evidence": "dedup.csv found",
+          "critical": true
+        },
+        {
+          "assertion_id": "dedup-report-exists",
+          "text": "A file named dedup-report.md exists in the outputs directory",
+          "passed": true,
+          "evidence": "dedup-report.md found",
+          "critical": true
+        },
+        {
+          "assertion_id": "quoted-fields-correct-row-count",
+          "text": "dedup.csv contains exactly 3 data rows: Smith John, Doe Jane, and Lee Sam \u2014 quoted-comma fields must be parsed as single cells, not split",
+          "passed": true,
+          "evidence": "dedup.csv has 3 data rows (expected 3 with quoted-comma fields)",
+          "critical": true
+        },
+        {
+          "assertion_id": "report-shows-2-removed",
+          "text": "dedup-report.md reports that exactly 2 duplicates were removed",
+          "passed": true,
+          "evidence": "Report shows 2 duplicates removed (expected 2)",
+          "critical": true
+        },
+        {
+          "assertion_id": "quoted-headers-preserved",
+          "text": "dedup.csv preserves the original column headers: Name, Address, Score",
+          "passed": true,
+          "evidence": "Headers: ['Name', 'Address', 'Score']",
+          "critical": false
+        },
+        {
+          "assertion_id": "report-uses-standard-title",
+          "text": "dedup-report.md starts with the heading '# CSV Dedup Report'",
+          "passed": false,
+          "evidence": "Report does NOT start with '# CSV Dedup Report'",
+          "critical": false
+        }
+      ],
+      "expectation_summary": {
+        "assertion_ids": [
+          "dedup-csv-exists",
+          "dedup-report-exists",
+          "quoted-fields-correct-row-count",
+          "report-shows-2-removed",
+          "quoted-headers-preserved",
+          "report-uses-standard-title"
+        ],
+        "critical_total": 4,
+        "critical_failed": 0
+      },
+      "notes": []
+    }
+  ],
+  "run_summary": {
+    "with_skill": {
+      "pass_rate": {
+        "mean": 1.0,
+        "stddev": 0.0,
+        "min": 1.0,
+        "max": 1.0
+      },
+      "time_seconds": {
+        "mean": 16.1037,
+        "stddev": 5.7361,
+        "min": 12.801,
+        "max": 24.691
+      },
+      "tokens": {
+        "mean": 717.25,
+        "stddev": 172.3937,
+        "min": 614.0,
+        "max": 975.0
+      }
+    },
+    "without_skill": {
+      "pass_rate": {
+        "mean": 0.8375,
+        "stddev": 0.015,
+        "min": 0.83,
+        "max": 0.86
+      },
+      "time_seconds": {
+        "mean": 13.3845,
+        "stddev": 2.7071,
+        "min": 10.33,
+        "max": 16.873
+      },
+      "tokens": {
+        "mean": 669.5,
+        "stddev": 128.3498,
+        "min": 518.0,
+        "max": 832.0
+      }
+    },
+    "delta": {
+      "pass_rate": "+0.16",
+      "time_seconds": "+2.7",
+      "tokens": "+48"
+    }
+  },
+  "notes": []
+}

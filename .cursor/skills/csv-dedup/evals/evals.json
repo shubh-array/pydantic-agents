@@ -1,0 +1,151 @@
+[
+  {
+    "id": 1,
+    "prompt": "I have a CSV file with some duplicate rows that I need to clean up. Can you deduplicate it and give me a report of what was removed?\n\nHere is the CSV content:\n\n```\nName,Age,City\nAlice,30,New York\nBob,25,Chicago\nAlice,30,New York\nCarol,35,Boston\nBob,25,Chicago\nDave,40,Seattle\n```\n\nPlease produce dedup.csv and dedup-report.md in the working directory.",
+    "expectations": [
+      {
+        "assertion_id": "dedup-csv-exists",
+        "text": "A file named dedup.csv exists in the outputs directory",
+        "critical": true
+      },
+      {
+        "assertion_id": "dedup-report-exists",
+        "text": "A file named dedup-report.md exists in the outputs directory",
+        "critical": true
+      },
+      {
+        "assertion_id": "correct-row-count",
+        "text": "dedup.csv contains exactly 4 data rows (header + 4 rows): Alice, Bob, Carol, Dave",
+        "critical": true
+      },
+      {
+        "assertion_id": "report-shows-2-removed",
+        "text": "dedup-report.md reports that exactly 2 duplicates were removed",
+        "critical": true
+      },
+      {
+        "assertion_id": "removed-table-present",
+        "text": "dedup-report.md includes a table listing the removed duplicate rows (row numbers and content)",
+        "critical": false
+      },
+      {
+        "assertion_id": "column-order-preserved",
+        "text": "dedup.csv preserves the original column order: Name, Age, City",
+        "critical": false
+      },
+      {
+        "assertion_id": "report-uses-standard-title",
+        "text": "dedup-report.md starts with the heading '# CSV Dedup Report'",
+        "critical": false
+      }
+    ]
+  },
+  {
+    "id": 2,
+    "prompt": "hey, this CSV has dupes but some cells have extra spaces around them — can you clean it up? i want the deduplicated version plus a report\n\n```\nName,Age,City\n  Alice ,30, New York\nBob,25,Chicago\nAlice,30,New York\n  Bob  ,25,Chicago\nCarol,35,  Boston\nCarol,35,Boston\n```\n\nWrite dedup.csv and dedup-report.md please.",
+    "expectations": [
+      {
+        "assertion_id": "dedup-csv-exists",
+        "text": "A file named dedup.csv exists in the outputs directory",
+        "critical": true
+      },
+      {
+        "assertion_id": "dedup-report-exists",
+        "text": "A file named dedup-report.md exists in the outputs directory",
+        "critical": true
+      },
+      {
+        "assertion_id": "whitespace-trimmed-dedup",
+        "text": "dedup.csv contains exactly 3 data rows — because whitespace-trimmed cells correctly identify the duplicates",
+        "critical": true
+      },
+      {
+        "assertion_id": "report-shows-3-removed",
+        "text": "dedup-report.md reports that exactly 3 duplicates were removed",
+        "critical": true
+      },
+      {
+        "assertion_id": "original-whitespace-preserved",
+        "text": "dedup.csv preserves the original cell values from the first occurrence — the first row of data should have '  Alice ' (with leading/trailing spaces) NOT 'Alice', because trimming is only for comparison, not for output",
+        "critical": true
+      },
+      {
+        "assertion_id": "removed-table-present",
+        "text": "dedup-report.md includes a table of removed rows with their original row numbers",
+        "critical": false
+      }
+    ]
+  },
+  {
+    "id": 3,
+    "prompt": "My CSV export has mixed-case headers and the values are inconsistent case too — can you deduplicate it? Headers should stay exactly as they are. Produce dedup.csv and dedup-report.md.\n\n```\nName,EMAIL,City\nAlice,alice@example.com,Boston\nBob,bob@example.com,Seattle\nALICE,alice@example.com,BOSTON\nalice,ALICE@EXAMPLE.COM,boston\nBob,BOB@EXAMPLE.COM,Seattle\n```",
+    "expectations": [
+      {
+        "assertion_id": "dedup-csv-exists",
+        "text": "A file named dedup.csv exists in the outputs directory",
+        "critical": true
+      },
+      {
+        "assertion_id": "dedup-report-exists",
+        "text": "A file named dedup-report.md exists in the outputs directory",
+        "critical": true
+      },
+      {
+        "assertion_id": "case-insensitive-dedup",
+        "text": "dedup.csv contains exactly 2 data rows (Alice and Bob) — case-insensitive comparison on values means ALICE/alice/Alice are all the same, as are Bob/BOB",
+        "critical": true
+      },
+      {
+        "assertion_id": "report-shows-3-removed",
+        "text": "dedup-report.md reports that exactly 3 duplicates were removed",
+        "critical": true
+      },
+      {
+        "assertion_id": "headers-preserved-as-is",
+        "text": "dedup.csv preserves the original mixed-case headers: Name, EMAIL, City",
+        "critical": true
+      },
+      {
+        "assertion_id": "report-uses-standard-title",
+        "text": "dedup-report.md starts with the heading '# CSV Dedup Report'",
+        "critical": false
+      }
+    ]
+  },
+  {
+    "id": 4,
+    "prompt": "I exported some customer data and there are duplicate records. The addresses have commas in them so the CSV uses quoted fields — please deduplicate it and produce dedup.csv and dedup-report.md.\n\n```\nName,Address,Score\n\"Smith, John\",\"123 Main St, New York, NY\",95\n\"Doe, Jane\",\"456 Oak Ave, Chicago, IL\",87\n\"Smith, John\",\"123 Main St, New York, NY\",95\n\"Lee, Sam\",\"789 Pine Rd, Boston, MA\",91\n\"Doe, Jane\",\"456 Oak Ave, Chicago, IL\",87\n```",
+    "expectations": [
+      {
+        "assertion_id": "dedup-csv-exists",
+        "text": "A file named dedup.csv exists in the outputs directory",
+        "critical": true
+      },
+      {
+        "assertion_id": "dedup-report-exists",
+        "text": "A file named dedup-report.md exists in the outputs directory",
+        "critical": true
+      },
+      {
+        "assertion_id": "quoted-fields-correct-row-count",
+        "text": "dedup.csv contains exactly 3 data rows: Smith John, Doe Jane, and Lee Sam — quoted-comma fields must be parsed as single cells, not split",
+        "critical": true
+      },
+      {
+        "assertion_id": "report-shows-2-removed",
+        "text": "dedup-report.md reports that exactly 2 duplicates were removed",
+        "critical": true
+      },
+      {
+        "assertion_id": "quoted-headers-preserved",
+        "text": "dedup.csv preserves the original column headers: Name, Address, Score",
+        "critical": false
+      },
+      {
+        "assertion_id": "report-uses-standard-title",
+        "text": "dedup-report.md starts with the heading '# CSV Dedup Report'",
+        "critical": false
+      }
+    ]
+  }
+]
