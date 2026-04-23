@@ -1,5 +1,5 @@
 ---
-description: Minimal global project context
+description: Global project context, structure, and conventions for pydantic-agents
 alwaysApply: true
 ---
 
@@ -9,3 +9,33 @@ alwaysApply: true
 - This project is in active development.
 - When planning and implementing, backward compatibility is not required.
 - Legacy code support is not required.
+
+## What This Project Is
+
+A foundational framework for coding agent development with two pillars:
+
+1. **Cursor Hook Framework** (`.cursor/hooks/`) — lifecycle hooks (session, shell, prompt, tool, subagent) that gate dangerous commands via `policy.json` and emit append-only JSONL analytics to `.array/analytics.jsonl`.
+2. **Meta Skill `create-agent-skill`** (`.cursor/skills/create-agent-skill/`) — an agent-agnostic harness (Cursor + Claude Code adapters) for authoring, evaluating, and iterating on agent skills with an LLM-as-a-judge eval pipeline.
+
+Example skills (`csv-dedup`, `finance-variance`) and their `*-workspace/` eval artifacts demonstrate the pipeline.
+
+## Repository Layout
+
+- `.cursor/hooks/` — hook entrypoints + `lib/` (audit, IO, shell policy)
+- `.cursor/hooks.json` — hook registration (version 1, `failClosed: true`)
+- `.cursor/skills/create-agent-skill/` — adapters, eval-harness, agents, schemas, scripts
+- `.cursor/skills/{csv-dedup,finance-variance}/` — example skills with `evals/evals.json`
+- `.cursor/skills/*-workspace/` — iteration benchmarks and eval run artifacts
+- `tests/create-agent-skill/` — unit, integration, e2e tests for the meta skill
+- `tests/hook_matrix/` — hook E2E reporting
+- `docs/` — design specs and upstream sync notes
+
+There is no top-level `src/` package; source lives under `.cursor/` and `tests/`.
+
+## Conventions
+
+- **Python tooling**: ruff (lint + format), pytest, uv for env management.
+- **Hook scripts**: Python entrypoints under `.cursor/hooks/`; shared logic in `lib/`.
+- **Analytics**: append-only JSONL via `lib/audit.py`; never mutate past entries.
+- **Eval artifacts**: each skill workspace tracks iterations (`iteration-N/`) with `benchmark.json`, `feedback.json`, and per-eval run folders.
+- **Adapters**: new coding-agent integrations go in `create-agent-skill/adapters/` with `adapter.py`, `config.json`, and `recipes.md`.

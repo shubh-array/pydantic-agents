@@ -1,0 +1,8 @@
+---
+description: Ensures AGENTS.md is always loaded in context
+alwaysApply: true
+---
+
+# AGENTS.md
+
+Always include @AGENTS.md in your context. This file contains cross-tool agent instructions that apply to every session.
