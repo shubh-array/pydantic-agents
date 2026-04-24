@@ -14,3 +14,7 @@ __pycache__/
 .DS_Store
 
 tmp/skill-creator/
+
+pba-agent/.env
+
+.array/analytics.jsonl

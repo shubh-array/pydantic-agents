@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 from pydantic_ai import Agent, RunContext
 from pydantic_ai.agent.spec import AgentSpec
@@ -36,15 +37,16 @@ def _build_agent(
     instructions: str,
     domain: str | None = None,
     model: str | None = None,
-) -> Agent[AgentDeps, str]:
+    output_type: Any = str,
+) -> Agent[AgentDeps, Any]:
     """Shared builder: load a YAML spec, attach instructions + user-context hook."""
     spec = AgentSpec.from_file(SPECS_DIR / spec_name)
 
-    kwargs: dict = dict(deps_type=AgentDeps, instructions=instructions)
+    kwargs: dict = dict(deps_type=AgentDeps, instructions=instructions, output_type=output_type)
     if model is not None:
         kwargs["model"] = model
 
-    agent: Agent[AgentDeps, str] = Agent.from_spec(spec, **kwargs)
+    agent: Agent[AgentDeps, Any] = Agent.from_spec(spec, **kwargs)
 
     @agent.instructions
     def inject_user_context(ctx: RunContext[AgentDeps]) -> str:
