@@ -1,0 +1,35 @@
+---
+description: Python tooling, dependency management, and coding conventions
+alwaysApply: true
+---
+
+# Python Conventions
+
+## Target version
+
+Python >=3.9 (`requires-python` in `pyproject.toml`). Ruff targets `py39`.
+
+## Dependency management
+
+- Use `uv`, never `pip` or `requirements.txt`.
+- Add packages: `uv add <library>`
+- Dev packages: `uv add --group dev <library>`
+- Run tools through uv: `uv run pytest`, `uv run ruff check`
+
+## Linting and formatting
+
+Ruff is configured in `pyproject.toml`: line-length 100, double quotes, space indent.
+
+- Check: `uv run ruff check .`
+- Format: `uv run ruff format .`
+
+## Testing
+
+- Framework: pytest
+- Run: `uv run pytest`
+- Tests live in `tests/` (unit, integration, e2e subdirs)
+
+## Style
+
+- Use `from __future__ import annotations` in library modules.
+- Hook scripts are invoked directly as `python3 .cursor/hooks/<script>.py` (not via `uv run`) since they use only stdlib.
