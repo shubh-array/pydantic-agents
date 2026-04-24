@@ -36,7 +36,7 @@ A learning path that teaches PydanticAI from basics to advanced features, where 
 | LLM provider | OpenAI only |
 | Package | `pydantic-ai-slim[openai]` |
 | Config format | YAML Agent Specs (`Agent.from_file()` / `Agent.from_spec()`) |
-| Python version | >=3.9 (matches existing `pyproject.toml`) |
+| Python version | >=3.11 (matches existing `pyproject.toml`) |
 | Package manager | `uv` |
 | Linting/formatting | Ruff (existing config) |
 | Testing | pytest + `TestModel` (unit) + `pydantic-evals` (behavioral) |
