@@ -39,6 +39,7 @@ def _build_agent(
     model: str | None = None,
     output_type: Any = str,
     tools: list[Any] | None = None,
+    capabilities: list[Any] | None = None,
 ) -> Agent[AgentDeps, Any]:
     """Shared builder: load a YAML spec, attach instructions + user-context hook."""
     spec = AgentSpec.from_file(SPECS_DIR / spec_name)
@@ -48,6 +49,8 @@ def _build_agent(
         kwargs["model"] = model
     if tools is not None:
         kwargs["tools"] = tools
+    if capabilities is not None:
+        kwargs["capabilities"] = capabilities
 
     agent: Agent[AgentDeps, Any] = Agent.from_spec(spec, **kwargs)
 

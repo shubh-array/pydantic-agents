@@ -13,7 +13,7 @@
 | 3 | Domain Agent Composition | Done |
 | 4 | Structured Output | Done |
 | 5 | Function Tools | Done |
-| 6 | Capabilities | Not started |
+| 6 | Capabilities | Done |
 | 7 | Observability | Not started |
 | 8 | Evaluation Pipeline | Not started |
 | 9 | Docker Infrastructure | Not started |
@@ -98,42 +98,67 @@ pba-agent/
 │   ├── base_agent.py             # Base factory + shared helpers
 │   ├── marketing_agent.py        # Marketing domain factory
 │   ├── operations_agent.py       # Operations domain factory
-│   └── tools/                    # Function tools by domain (Step 5)
+│   ├── tools/                    # Function tools by domain (Step 5)
+│   │   ├── __init__.py
+│   │   ├── marketing_tools.py
+│   │   └── operations_tools.py
+│   └── capabilities/             # Custom capabilities (Step 6)
 │       ├── __init__.py
-│       ├── marketing_tools.py
-│       └── operations_tools.py
+│       ├── audit_logger.py
+│       └── brand_voice.py
 └── examples/
     ├── 01_agent_basics.py        # Step 1
     ├── 02_base_agent.py          # Step 2
     ├── 03_domain_agents.py       # Step 3
     ├── 04_structured_output.py   # Step 4
-    └── 05_tools.py               # Step 5
+    ├── 05_tools.py               # Step 5
+    └── 06_capabilities.py        # Step 6
 ```
+
+### Step 6: Capabilities
+
+Built two custom capabilities by subclassing `AbstractCapability`. `AuditLogger` uses `wrap_model_request` and `wrap_tool_execute` lifecycle hooks to log every model request and tool execution with timing data to an in-memory audit trail. `BrandVoiceGuardrail` uses `after_model_request` to scan model responses for forbidden marketing phrasings (from the `<brand_voice_extensions>` section) and raises `ModelRetry` when a violation is found, forcing the model to self-correct. Extended `_build_agent()` with a `capabilities` parameter so domain factories can pass capabilities into the agent constructor via `Agent.from_spec()`. Verified: audit logger captures all model requests and tool calls with timing; guardrail is active and would trigger retries on forbidden phrasings; both capabilities compose cleanly on the same agent.
+
+**Key concepts learned:**
+- `AbstractCapability` is the base class for reusable, composable agent behavior
+- Capabilities bundle tools, lifecycle hooks, instructions, and model settings into one object
+- Lifecycle hooks: `wrap_model_request` (middleware around LLM calls), `wrap_tool_execute` (middleware around tool calls), `after_model_request` (post-process responses)
+- `ModelRetry` can be raised from hooks to force the model to self-correct
+- Capabilities compose: multiple capabilities fire in registration order (`before_*`) and reverse order (`after_*`)
+- Built-in capabilities include `Thinking`, `WebSearch`, `WebFetch`, `Hooks`, `PrefixTools`
+- Custom capabilities with mutable state are Python-only (not serializable to YAML specs)
+
+**Files:**
+- `pba-agent/src/capabilities/__init__.py`
+- `pba-agent/src/capabilities/audit_logger.py` — `AuditLogger` (cross-cutting, logs model requests + tool calls)
+- `pba-agent/src/capabilities/brand_voice.py` — `BrandVoiceGuardrail` (marketing-specific, rejects forbidden phrasings)
+- `pba-agent/src/base_agent.py` — added `capabilities` parameter to `_build_agent()`
+- `pba-agent/examples/06_capabilities.py`
 
 ---
 
-## How to Resume (Step 6: Capabilities)
+## How to Resume (Step 7: Observability)
 
 ### Spec reference
 
-Open `docs/superpowers/specs/2026-04-24-pydantic-ai-learning-path-design.md` and go to **Section 5, Step 6** (around line 289).
+Open `docs/superpowers/specs/2026-04-24-pydantic-ai-learning-path-design.md` and go to **Section 5, Step 7** (around line 317).
 
-### What Step 6 covers
+### What Step 7 covers
 
-- `AbstractCapability` — the base class for custom capabilities
-- Capabilities bundle: tools (via toolsets), lifecycle hooks, instructions, model settings
-- Built-in capabilities: `Thinking`, `WebSearch`, `Hooks`
-- Lifecycle hooks: `before_model_request`, `after_tool_call`, etc.
-- Capabilities in YAML specs
-- `PrefixTools` for namespacing
-- Files to produce: `src/capabilities/__init__.py`, `src/capabilities/audit_logger.py`, `src/capabilities/brand_voice.py`, updated YAML specs, `examples/06_capabilities.py`
+- Logfire SDK: `logfire.configure()`, `logfire.instrument_pydantic_ai()`
+- Tracing agent runs: messages, tool calls, token usage, latency
+- `TestModel` for unit testing without hitting OpenAI
+- `agent.override(deps=...)` for test dependency injection
+- `capture_run_messages()` for debugging
+- Files to produce: `examples/07_observability.py`, `tests/__init__.py`, `tests/test_base_agent.py`, `tests/test_marketing_agent.py`, `tests/test_operations_agent.py`
 
 ### Docs to fetch first (docs-first protocol)
 
-Per the spec's Section 3 table, fetch these PydanticAI docs before coding Step 6:
+Per the spec's Section 3 table, fetch these PydanticAI docs before coding Step 7:
 
 1. `list_doc_sources` via MCP `ai-docs`
-2. `fetch_docs` on `https://pydantic.dev/docs/ai/core-concepts/capabilities/index.md` (Capabilities)
+2. `fetch_docs` on `https://pydantic.dev/docs/ai/integrations/logfire/index.md` (Logfire integration)
+3. `fetch_docs` on `https://pydantic.dev/docs/ai/guides/testing/index.md` (Testing)
 
 Note: PydanticAI docs have migrated from `ai.pydantic.dev` to `pydantic.dev/docs/ai/`. The MCP server's allowed domains may need the redirect-aware `WebFetch` tool as a fallback.
 
@@ -141,7 +166,8 @@ Note: PydanticAI docs have migrated from `ai.pydantic.dev` to `pydantic.dev/docs
 
 ```bash
 cd pba-agent
-env $(cat .env) uv run python examples/06_capabilities.py
+env $(cat .env) uv run python examples/07_observability.py
+uv run pytest tests/
 ```
 
 ### Key context for the new session
@@ -149,11 +175,12 @@ env $(cat .env) uv run python examples/06_capabilities.py
 - All domain agents share `AgentDeps` from `src/deps.py`
 - Factory functions are in `src/base_agent.py`, `src/marketing_agent.py`, `src/operations_agent.py`
 - `src/base_agent.py` exports `compose_prompt()` and `_build_agent()` for reuse
-- `_build_agent()` accepts `output_type` and `tools` params — added in Steps 4-5
+- `_build_agent()` accepts `output_type`, `tools`, and `capabilities` params — added in Steps 4-6
 - Output models live in `src/models.py`: `MarketingDraft`, `IncidentStatus`, `Failed`
 - Tool stubs live in `src/tools/`: `marketing_tools.py` and `operations_tools.py`
+- Custom capabilities live in `src/capabilities/`: `AuditLogger` and `BrandVoiceGuardrail`
 - Tools use both `RunContext[AgentDeps]` (context-aware) and plain signatures (no context)
-- `ModelRetry` is used in `get_content_calendar` and `search_runbooks` for self-correction
+- `ModelRetry` is used in tools (`get_content_calendar`, `search_runbooks`) and capabilities (`BrandVoiceGuardrail`)
 - Example scripts use `sys.path.insert(0, 'src')` for imports (no package install)
 - YAML specs live in `specs/` and are loaded via `AgentSpec.from_file()` + `Agent.from_spec()`
 - Python target is `>=3.11`, Ruff target is `py311`
