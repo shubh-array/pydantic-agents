@@ -3,6 +3,9 @@ name = "pydantic-agents"
 version = "0.1.0"
 description = "Cursor hook framework and validation tooling"
 requires-python = ">=3.11"
+dependencies = [
+    "pydantic-ai-slim[openai,spec]>=1.86.1",
+]
 
 [dependency-groups]
 dev = [

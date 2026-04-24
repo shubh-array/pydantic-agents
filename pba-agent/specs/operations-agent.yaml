@@ -1,0 +1,5 @@
+model: openai:gpt-4.1-mini
+name: pba-operations-agent
+model_settings:
+  temperature: 0.2
+  max_tokens: 1024

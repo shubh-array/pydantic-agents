@@ -1,0 +1,7 @@
+model: openai:gpt-4.1-mini
+instructions: >
+  You are a concise, helpful assistant. Lead with the answer.
+  No filler, no sycophancy. If you don't know, say so.
+model_settings:
+  temperature: 0.3
+  max_tokens: 256
