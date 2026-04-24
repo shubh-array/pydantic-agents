@@ -40,10 +40,62 @@ A learning path that teaches PydanticAI from basics to advanced features, where 
 | Package manager | `uv` |
 | Linting/formatting | Ruff (existing config) |
 | Testing | pytest + `TestModel` (unit) + `pydantic-evals` (behavioral) |
+| Runtime | Docker containers via Docker Compose (cross-platform) |
+| Docs verification | MCP `ai-docs` server consulted before each implementation step |
 
 ---
 
-## 3. Project Structure (Final State)
+## 3. Docs-First Protocol
+
+**Before implementing each step**, the agent (or developer) must consult the latest PydanticAI documentation via the MCP `ai-docs` server configured in `.cursor/mcp.json`. This ensures code uses the latest released SDK APIs, not stale training data.
+
+### MCP Server Configuration
+
+```json
+{
+  "mcpServers": {
+    "ai-docs": {
+      "command": "uvx",
+      "args": [
+        "--from", "mcpdoc", "mcpdoc",
+        "--urls",
+        "PydanticAI:https://ai.pydantic.dev/llms.txt",
+        "MCP:https://modelcontextprotocol.io/llms.txt",
+        "--transport", "stdio"
+      ]
+    }
+  }
+}
+```
+
+### Per-Step Verification Procedure
+
+For each learning path step, before writing any code:
+
+1. **`list_doc_sources`** — call the MCP tool to discover available documentation indexes.
+2. **`fetch_docs`** on the PydanticAI `llms.txt` URL — get the doc index to find the relevant page URLs for the step's concepts.
+3. **`fetch_docs`** on the specific page URLs — read the actual docs for the APIs being used in that step.
+4. **Verify** — confirm that the API signatures, parameter names, and behavior described in the docs match what the step's code will use. If the docs show a different API than what training data suggests, use the docs.
+
+### Which docs to fetch per step
+
+| Step | Primary doc pages to fetch |
+|---|---|
+| 1. Agent Basics + YAML Specs | Agents, Agent Specs, Installation |
+| 2. Base Prompt + Dependencies | Agents (instructions), Dependencies |
+| 3. Domain Agent Composition | Agents (instructions), Agent Specs (`from_spec` merging) |
+| 4. Structured Output | Output |
+| 5. Function Tools | Function Tools, Advanced Tool Features |
+| 6. Capabilities | Capabilities |
+| 7. Observability | Logfire integration, Testing |
+| 8. Evaluation Pipeline | Pydantic Evals (Quick Start, Core Concepts, Custom Evaluators, Dataset Management) |
+| 9. Docker Infrastructure | (no PydanticAI docs needed; Docker/Compose only) |
+
+This protocol is not optional. Training data drifts; official docs are the source of truth.
+
+---
+
+## 4. Project Structure (Final State)
 
 ```
 pba-agent/
@@ -78,6 +130,12 @@ pba-agent/
 │   ├── evaluators/                   # Custom evaluators (if needed)
 │   │   └── __init__.py
 │   └── run_evals.py                  # Eval runner script
+├── docker/                           # Docker infrastructure
+│   ├── Dockerfile                    # Multi-stage build for agent runtime
+│   ├── Dockerfile.dev                # Dev image with test/eval tooling
+│   └── .dockerignore
+├── docker-compose.yaml               # Orchestrates all agent services
+├── .env.example                      # Template for required env vars
 ├── examples/                         # Tutorial scripts (one per step)
 │   ├── 01_agent_basics.py
 │   ├── 02_base_agent.py
@@ -86,7 +144,8 @@ pba-agent/
 │   ├── 05_tools.py
 │   ├── 06_capabilities.py
 │   ├── 07_observability.py
-│   └── 08_evals.py
+│   ├── 08_evals.py
+│   └── 09_docker.py                  # Demonstrates running agents in containers
 └── tests/                            # Unit tests using TestModel
     ├── __init__.py
     ├── test_base_agent.py
@@ -96,7 +155,7 @@ pba-agent/
 
 ---
 
-## 4. Learning Path — 8 Steps
+## 5. Learning Path — 9 Steps
 
 ### Step 1: Agent Basics + YAML Specs
 
@@ -320,7 +379,78 @@ Each agent's eval dataset covers:
 
 ---
 
-## 5. Dependencies
+### Step 9: Docker Infrastructure
+
+**Concepts introduced:**
+- Dockerfile with multi-stage build (slim production image)
+- Docker Compose for orchestrating agent services
+- Environment variable management (`.env` files, secrets)
+- Service-per-agent pattern (each domain agent is a standalone service)
+- Health checks and graceful shutdown
+- Dev vs production image targets
+- Running tests and evals inside containers
+
+**What you learn:**
+- A Dockerfile defines how to package your agent into a portable container that runs identically on any machine (macOS, Linux, Windows, CI).
+- Multi-stage builds keep production images small: a "build" stage installs dependencies with `uv`, a "runtime" stage copies only what's needed.
+- Docker Compose defines multiple services in one file. Each domain agent runs as its own service, with shared configuration (env vars, volumes) defined once.
+- Environment variables (especially `OPENAI_API_KEY`) are passed via `.env` files — never baked into the image.
+- Health checks let the orchestrator know if an agent service is alive and ready.
+
+**Docker Compose services:**
+
+| Service | Image | Purpose |
+|---|---|---|
+| `base-agent` | `pba-agent:latest` | Base agent (generalist) — entrypoint runs `base_agent.py` |
+| `marketing-agent` | `pba-agent:latest` | Marketing domain agent — same image, different entrypoint/config |
+| `operations-agent` | `pba-agent:latest` | Operations domain agent — same image, different entrypoint/config |
+| `eval-runner` | `pba-agent:dev` | Runs the eval pipeline (includes test/eval deps) |
+| `logfire` | (optional) | Logfire collector if self-hosting; otherwise agents send to Logfire cloud |
+
+All agent services use the **same Docker image** (built once) with different entrypoints and YAML spec paths passed via environment variables. This keeps the image count to one and avoids duplication.
+
+**Dockerfile strategy:**
+
+```
+Stage 1: "build"
+  - FROM python:3.12-slim
+  - Install uv
+  - Copy pyproject.toml + uv.lock
+  - uv sync (install deps)
+  - Copy source code
+
+Stage 2: "runtime" (production)
+  - FROM python:3.12-slim
+  - Copy venv from build stage
+  - Copy source, prompts, specs
+  - ENTRYPOINT: uv run python -m pba_agent
+  - ENV: AGENT_SPEC_PATH (which YAML spec to load)
+
+Stage 3: "dev" (testing + evals)
+  - FROM build stage
+  - uv sync --group dev (add test/eval deps)
+  - ENTRYPOINT: uv run pytest / uv run python evals/run_evals.py
+```
+
+**Files produced:**
+- `docker/Dockerfile` — multi-stage build
+- `docker/Dockerfile.dev` — dev image extending the build stage
+- `docker/.dockerignore`
+- `docker-compose.yaml` — all services defined
+- `.env.example` — template with `OPENAI_API_KEY`, `AGENT_SPEC_PATH`, `LOGFIRE_TOKEN`
+- `examples/09_docker.py` — tutorial script demonstrating container usage
+
+**Success criteria:**
+- `docker compose build` succeeds.
+- `docker compose up base-agent` starts the base agent service.
+- `docker compose up marketing-agent operations-agent` starts both domain agents.
+- `docker compose run eval-runner` executes the full eval pipeline inside a container.
+- `docker compose run eval-runner pytest` runs unit tests inside a container.
+- All of the above work identically on macOS and Linux.
+
+---
+
+## 6. Dependencies
 
 Added to `pyproject.toml`:
 
@@ -342,13 +472,13 @@ dev = [
 
 ---
 
-## 6. Environment
+## 7. Environment
 
-The `OPENAI_API_KEY` environment variable must be set for examples that hit the live API. Tutorial step 1 will document this. Unit tests (Step 7) use `TestModel` and require no API key.
+The `OPENAI_API_KEY` environment variable must be set for examples that hit the live API. Tutorial step 1 will document this. Unit tests (Step 7) use `TestModel` and require no API key. When running in Docker, env vars are passed via `.env` file (see `.env.example`).
 
 ---
 
-## 7. Prompt Composition Model
+## 8. Prompt Composition Model
 
 The base + domain prompt composition follows the architecture defined in `base-system-prompt.md`:
 
@@ -378,7 +508,7 @@ In code, the factory function:
 
 ---
 
-## 8. Design Decisions
+## 9. Design Decisions
 
 | Decision | Rationale |
 |---|---|
@@ -390,3 +520,8 @@ In code, the factory function:
 | Shared `AgentDeps` dataclass across all agents | A single `AgentDeps` dataclass with an optional `domain` field serves all agents. If domains later need divergent deps, they subclass `AgentDeps` — PydanticAI's `deps_type` supports this since `RunContext[AgentDeps]` accepts subclasses. Start simple; split only when forced. |
 | Stub tool implementations in Step 5 | Real API integrations are out of scope for the learning path. Stubs demonstrate the tool pattern; real implementations are swapped in later. |
 | Capabilities introduced after tools | You need to understand individual tools before you can appreciate bundling them into capabilities. |
+| MCP docs-first protocol before each step | PydanticAI is actively developed; training data drifts. Fetching `llms.txt` before coding ensures the latest API surface is used. |
+| Single Docker image, multiple entrypoints | All domain agents share the same codebase and dependencies. Different YAML spec paths select the domain at runtime. Avoids image sprawl. |
+| Docker Compose for orchestration | Simple, file-based, no Kubernetes overhead for dev/staging. Production can graduate to K8s later using the same images. |
+| `python:3.12-slim` as base image | Balances image size with compatibility. 3.12 is the latest stable Python and matches PydanticAI's recommended version. |
+| Eval runner as a Docker service | Evals should run in the same environment as production agents. A dedicated service ensures eval deps don't bloat the production image. |
