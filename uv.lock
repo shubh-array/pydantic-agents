@@ -629,6 +629,7 @@ dependencies = [
 [package.dev-dependencies]
 dev = [
     { name = "jsonschema" },
+    { name = "pydantic-evals" },
     { name = "pytest" },
     { name = "ruff" },
 ]
@@ -639,6 +640,7 @@ requires-dist = [{ name = "pydantic-ai-slim", extras = ["openai", "spec", "logfi
 [package.metadata.requires-dev]
 dev = [
     { name = "jsonschema", specifier = ">=4" },
+    { name = "pydantic-evals", specifier = ">=1.86.1" },
     { name = "pytest", specifier = ">=8" },
     { name = "ruff", specifier = ">=0.15.10" },
 ]
@@ -774,6 +776,23 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/10/92/7e0e1bd9ca3c68305db037560ca2876f89b2647deb2f8b6319005de37505/pydantic_core-2.46.3-pp311-pypy311_pp73-musllinux_1_1_armv7l.whl", hash = "sha256:e61ea8e9fff9606d09178f577ff8ccdd7206ff73d6552bcec18e1033c4254b85", size = 2315886, upload-time = "2026-04-20T14:44:04.826Z" },
     { url = "https://files.pythonhosted.org/packages/b8/d8/101655f27eaf3e44558ead736b2795d12500598beed4683f279396fa186e/pydantic_core-2.46.3-pp311-pypy311_pp73-musllinux_1_1_x86_64.whl", hash = "sha256:b504bda01bafc69b6d3c7a0c7f039dcf60f47fab70e06fe23f57b5c75bdc82b8", size = 2360528, upload-time = "2026-04-20T14:40:47.431Z" },
     { url = "https://files.pythonhosted.org/packages/07/0f/1c34a74c8d07136f0d729ffe5e1fdab04fbdaa7684f61a92f92511a84a15/pydantic_core-2.46.3-pp311-pypy311_pp73-win_amd64.whl", hash = "sha256:b00b76f7142fc60c762ce579bd29c8fa44aaa56592dd3c54fab3928d0d4ca6ff", size = 2184144, upload-time = "2026-04-20T14:42:57Z" },
+]
+
+[[package]]
+name = "pydantic-evals"
+version = "1.86.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "anyio" },
+    { name = "logfire-api" },
+    { name = "pydantic" },
+    { name = "pydantic-ai-slim" },
+    { name = "pyyaml" },
+    { name = "rich" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/20/a8/b7960b88171b7483cba9bfd867e0dca14fe5b45e24c0b9c2e010408e4283/pydantic_evals-1.86.1.tar.gz", hash = "sha256:2a4a3524a69f84787df02d61dd114a1a343b5b52b9b4dcc62b5fa5a5daa705af", size = 76562, upload-time = "2026-04-24T00:46:08.943Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/a0/a7/1f4b39e1ffa2fda5ab3049c00d8f95e734c0c70855d9ec77aacc9a3e243b/pydantic_evals-1.86.1-py3-none-any.whl", hash = "sha256:92ac1910d9a7cec18f5287ac0d9f0ed9d80c6ef74f36b74e65d150b1be5b53a4", size = 91529, upload-time = "2026-04-24T00:46:02.304Z" },
 ]
 
 [[package]]

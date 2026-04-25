@@ -5,7 +5,7 @@
         "args": [
           "--from", "mcpdoc", "mcpdoc",
           "--urls",
-          "PydanticAI:https://ai.pydantic.dev/llms.txt",
+          "PydanticAI:https://pydantic.dev/docs/ai/llms.txt",
           "MCP:https://modelcontextprotocol.io/llms.txt",
           "--transport", "stdio"
         ]

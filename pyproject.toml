@@ -12,6 +12,7 @@ dev = [
   "ruff>=0.15.10",
   "pytest>=8",
   "jsonschema>=4",
+  "pydantic-evals>=1.86.1",
 ]
 
 [tool.ruff]
