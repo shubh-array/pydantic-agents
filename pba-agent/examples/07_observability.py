@@ -6,14 +6,18 @@ Demonstrates:
 - Full tracing of agent runs: messages, tool calls, token usage, latency
 - capture_run_messages() for programmatic message inspection
 
-Prerequisites:
-    # Start Jaeger (from pba-agent/ directory)
-    docker compose up -d
+Prerequisites — pick ONE way to start Jaeger (from pba-agent/ directory):
 
-    # Run this example
+    Option A  (standalone binary, no Docker):
+        ./scripts/start-jaeger.sh
+
+    Option B  (Docker Compose):
+        docker compose up -d
+
+Then run this example:
     env $(cat .env) uv run python examples/07_observability.py
 
-    # Open http://localhost:16686 to view traces in the Jaeger UI.
+Open http://localhost:16686 to view traces in the Jaeger UI.
 """
 
 from __future__ import annotations

@@ -16,5 +16,6 @@ __pycache__/
 tmp/skill-creator/
 
 pba-agent/.env
+pba-agent/.jaeger/
 
 .array/analytics.jsonl

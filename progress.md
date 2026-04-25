@@ -81,7 +81,10 @@ Created stub tools for both domains. Marketing tools: `search_brand_assets` (Run
 ```
 pba-agent/
 ├── .env                          # OPENAI_API_KEY (user-created)
-├── docker-compose.yaml           # Jaeger service (Step 7)
+├── jaeger-config.yaml            # Jaeger v2 config (Step 7)
+├── docker-compose.yaml           # Jaeger via Docker (Step 7 fallback)
+├── scripts/
+│   └── start-jaeger.sh           # Download + run Jaeger binary (Step 7)
 ├── prompts/                      # Existing prompt files (untouched)
 │   ├── base-system-prompt.md
 │   ├── marketing-agent-prompt.md
@@ -149,13 +152,13 @@ Combined original Steps 7 and 9. Since traces export to a local Jaeger container
 
 **Observability setup:** Created `src/observability.py` with a `configure_tracing()` helper that wraps `logfire.configure(send_to_logfire=False)` + `logfire.instrument_pydantic_ai()`. By default, traces go to a local Jaeger instance at `http://localhost:4318` (the OTel HTTP endpoint). If `LOGFIRE_TOKEN` is set, Logfire cloud is enabled alongside the local backend.
 
-**Docker Compose:** A single `docker-compose.yaml` at `pba-agent/` starts `jaegertracing/all-in-one:latest` with the Jaeger UI on port 16686 and the OTLP receiver on port 4318. One command: `docker compose up -d`.
+**Jaeger (two options):** A `scripts/start-jaeger.sh` script downloads the Jaeger v2 binary for the current platform and runs it locally (no Docker needed). A `jaeger-config.yaml` configures in-memory storage with OTLP HTTP on port 4318 and the UI on port 16686. As a fallback, `docker-compose.yaml` starts the same setup via Docker Compose.
 
 **Unit tests with TestModel:** Wrote 13 unit tests across three files using `TestModel` — no OpenAI API calls, no cost, deterministic. Tests verify agent factory functions, `TestModel` output, `capture_run_messages()` message capture, and `compose_prompt()` domain insertion. A `conftest.py` sets `ALLOW_MODEL_REQUESTS = False` as a safety net and adds `src/` to `sys.path`. All tests pass in ~0.3s.
 
 **Key concepts learned:**
-- `logfire.configure(send_to_logfire=False)` + `OTEL_EXPORTER_OTLP_ENDPOINT` sends traces to any OTel-compatible backend (Jaeger, Grafana Tempo, SigNoz)
-- `logfire.instrument_pydantic_ai()` auto-instruments all agent runs with spans for model requests, tool calls, and token usage
+- `logfire.configure(send_to_logfire=False)` + `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` sends traces to any OTel-compatible backend (Jaeger, Grafana Tempo, SigNoz)
+- `logfire.instrument_pydantic_ai(version=3)` auto-instruments all agent runs with spec-compliant span names (`invoke_agent {name}`, `execute_tool {tool}`) and spans for model requests, tool calls, and token usage
 - `TestModel` generates valid structured data from tool/output JSON schemas — no ML, just procedural Python
 - `agent.override(model=TestModel())` swaps the model in a context block without touching application code
 - `ALLOW_MODEL_REQUESTS = False` blocks accidental real API calls in tests
@@ -164,7 +167,9 @@ Combined original Steps 7 and 9. Since traces export to a local Jaeger container
 
 **Files:**
 - `pba-agent/src/observability.py` — `configure_tracing()` helper
-- `pba-agent/docker-compose.yaml` — Jaeger service
+- `pba-agent/scripts/start-jaeger.sh` — downloads + runs Jaeger v2 binary locally
+- `pba-agent/jaeger-config.yaml` — Jaeger v2 config (in-memory storage, OTLP on 4318)
+- `pba-agent/docker-compose.yaml` — Jaeger service (Docker fallback)
 - `pba-agent/tests/__init__.py`
 - `pba-agent/tests/conftest.py` — path setup, ALLOW_MODEL_REQUESTS, dummy API key
 - `pba-agent/tests/test_base_agent.py` — 5 tests
@@ -172,7 +177,7 @@ Combined original Steps 7 and 9. Since traces export to a local Jaeger container
 - `pba-agent/tests/test_operations_agent.py` — 4 tests
 - `pba-agent/examples/07_observability.py`
 - Updated `pyproject.toml` — added `logfire` extra to `pydantic-ai-slim`
-- Updated `.env.example` — added `LOGFIRE_TOKEN` and `OTEL_EXPORTER_OTLP_ENDPOINT`
+- Updated `.env.example` — added `LOGFIRE_TOKEN` and `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT`
 
 ---
 
@@ -212,9 +217,16 @@ cd pba-agent
 # Run unit tests (no API key needed)
 uv run pytest tests/
 
-# Start Jaeger + run the observability example
-docker compose up -d
+# Start Jaeger — pick one:
+./scripts/start-jaeger.sh          # Option A: local binary (no Docker)
+docker compose up -d               # Option B: Docker Compose
+
+# Run the observability example
 env $(cat .env) uv run python examples/07_observability.py
+
+# Stop Jaeger when done:
+./scripts/start-jaeger.sh --stop   # Option A
+docker compose down                # Option B
 
 # Run evals (after Step 8 is complete)
 env $(cat .env) uv run python evals/run_evals.py
