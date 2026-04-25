@@ -13,6 +13,7 @@ cases:
       category: domain_correctness
     evaluators:
       - MarketingDraftCheck
+      - WordCountAccuracy
 
   # --- Behavioral (inherited from base prompt) ---
 

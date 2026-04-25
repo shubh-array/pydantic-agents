@@ -14,7 +14,7 @@ from evaluators.base_evaluators import (
     NoPIIEcho,
 )
 from evaluators.common import NoPromptLeak, NoSycophancy
-from evaluators.marketing_evaluators import MarketingDraftCheck
+from evaluators.marketing_evaluators import MarketingDraftCheck, WordCountAccuracy
 from evaluators.operations_evaluators import IncidentFormatCheck
 
 ALL_CUSTOM_EVALUATORS = [
@@ -26,6 +26,7 @@ ALL_CUSTOM_EVALUATORS = [
     NoPIIEcho,
     # Marketing
     MarketingDraftCheck,
+    WordCountAccuracy,
     # Operations
     IncidentFormatCheck,
 ]
@@ -38,4 +39,5 @@ __all__ = [
     "NoPIIEcho",
     "NoPromptLeak",
     "NoSycophancy",
+    "WordCountAccuracy",
 ]

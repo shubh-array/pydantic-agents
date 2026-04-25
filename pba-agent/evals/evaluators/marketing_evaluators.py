@@ -44,3 +44,34 @@ class MarketingDraftCheck(Evaluator):
         results["has_tone"] = bool(output.tone and output.tone.strip())
         results["positive_word_count"] = output.word_count > 0
         return results
+
+
+@dataclass
+class WordCountAccuracy(Evaluator):
+    """Check that MarketingDraft.word_count matches the actual content length.
+
+    Allows a configurable tolerance (default ±20%) since models sometimes
+    approximate word counts.  Skips for Failed outputs.
+    """
+
+    tolerance: float = 0.20
+
+    def evaluate(self, ctx: EvaluatorContext) -> EvaluationReason:
+        output = ctx.output
+        type_name = type(output).__name__
+        if type_name != "MarketingDraft":
+            return EvaluationReason(value=True, reason=f"Not a MarketingDraft ({type_name}) — skipped")
+
+        actual = len(output.content.split())
+        claimed = output.word_count
+        if claimed == 0:
+            return EvaluationReason(value=False, reason="word_count is 0")
+        ratio = abs(actual - claimed) / claimed
+        if ratio > self.tolerance:
+            return EvaluationReason(
+                value=False,
+                reason=f"word_count={claimed} but actual={actual} (off by {ratio:.0%})",
+            )
+        return EvaluationReason(
+            value=True, reason=f"word_count={claimed}, actual={actual} (within {self.tolerance:.0%})"
+        )
