@@ -116,7 +116,7 @@ pba-agent/
 │   ├── evaluators/
 │   │   ├── __init__.py           # Re-exports ALL_CUSTOM_EVALUATORS
 │   │   ├── common.py             # NoSycophancy, NoPromptLeak
-│   │   ├── base_evaluators.py    # LeadsWithAnswer, ConciseResponse, NoPIIEcho, etc.
+│   │   ├── base_evaluators.py    # ConciseResponse, NoPIIEcho
 │   │   ├── marketing_evaluators.py  # MarketingDraftCheck
 │   │   └── operations_evaluators.py # IncidentFormatCheck
 │   ├── datasets/
@@ -196,7 +196,7 @@ Combined original Steps 7 and 9. Since traces export to a local Jaeger container
 
 ### Step 8: Evaluation Pipeline
 
-Built a complete evaluation pipeline using `pydantic-evals`. Created four custom evaluators (`IncidentFormatCheck`, `MarketingDraftCheck`, `NoSycophancy`, `NoPromptLeak`) that cover domain correctness and behavioral compliance. Each evaluator uses `@dataclass` + `Evaluator` base class and returns `dict[str, bool | EvaluationReason]` for multi-assertion results. Created three YAML eval datasets (base, marketing, operations) covering five categories: behavioral compliance, domain correctness, tool usage, output structure, and edge cases. Built a standardized runner (`evals/run_evals.py`) that supports two modes: CI mode (default, uses `TestModel`, no API key, deterministic) and live mode (`--live` flag, uses real OpenAI model). The example script (`08_evals.py`) demonstrates three workflows: inline dataset creation, structured-output evaluation, and loading datasets from YAML.
+Built a complete evaluation pipeline using `pydantic-evals`. Created six custom evaluators (`NoSycophancy`, `NoPromptLeak`, `ConciseResponse`, `NoPIIEcho`, `MarketingDraftCheck`, `IncidentFormatCheck`) that cover behavioral compliance, security, and domain correctness. Each evaluator demonstrates a distinct pydantic-evals pattern: simple regex check, fragment-list security, configurable dataclass field, multi-assertion dict return, and structured output validation. Created three YAML eval datasets (base 5 cases, marketing 2 cases, operations 2 cases) covering behavioral compliance, domain correctness, and edge cases. Built a standardized runner (`evals/run_evals.py`) that supports two modes: CI mode (default, uses `TestModel`, no API key, deterministic) and live mode (`--live` flag, uses real OpenAI model). The example script (`08_evals.py`) demonstrates three workflows: inline dataset creation, structured-output evaluation, and loading datasets from YAML.
 
 **Design decision — tools in evals:** `TestModel` generates procedural tool arguments that don't satisfy semantic validation in stub tools (e.g., `get_content_calendar` rejects synthetic channel names via `ModelRetry`). Tools are therefore excluded in CI mode — tool behavior is independently covered by the 13 unit tests. In `--live` mode, tools are included and the full agent pipeline is exercised.
 
@@ -214,14 +214,14 @@ Built a complete evaluation pipeline using `pydantic-evals`. Created four custom
 
 **Files:**
 - `pba-agent/evals/__init__.py`
-- `pba-agent/evals/evaluators/__init__.py` — re-exports `ALL_CUSTOM_EVALUATORS` (9 classes)
+- `pba-agent/evals/evaluators/__init__.py` — re-exports `ALL_CUSTOM_EVALUATORS` (6 classes)
 - `pba-agent/evals/evaluators/common.py` — `NoSycophancy`, `NoPromptLeak`
-- `pba-agent/evals/evaluators/base_evaluators.py` — `LeadsWithAnswer`, `NoRequestRestatement`, `NoAnnouncedActions`, `ConciseResponse`, `NoPIIEcho`
+- `pba-agent/evals/evaluators/base_evaluators.py` — `ConciseResponse`, `NoPIIEcho`
 - `pba-agent/evals/evaluators/marketing_evaluators.py` — `MarketingDraftCheck`
 - `pba-agent/evals/evaluators/operations_evaluators.py` — `IncidentFormatCheck`
-- `pba-agent/evals/datasets/base_agent_cases.yaml` — 10 cases (behavioral + output contract + operating defaults)
-- `pba-agent/evals/datasets/marketing_agent_cases.yaml` — 5 cases (domain + behavioral)
-- `pba-agent/evals/datasets/operations_agent_cases.yaml` — 5 cases (domain + behavioral)
+- `pba-agent/evals/datasets/base_agent_cases.yaml` — 5 cases (behavioral + edge case)
+- `pba-agent/evals/datasets/marketing_agent_cases.yaml` — 2 cases (domain + behavioral)
+- `pba-agent/evals/datasets/operations_agent_cases.yaml` — 2 cases (domain + behavioral)
 - `pba-agent/evals/run_evals.py` — standardized eval runner (CI + live modes)
 - `pba-agent/examples/08_evals.py` — tutorial walkthrough (3 demos)
 - Updated `pyproject.toml` — added `pydantic-evals` to dev dependencies
@@ -282,7 +282,7 @@ docker compose down                # Option B
 - `src/observability.py` exports `configure_tracing()` — wraps Logfire SDK + OTel to Jaeger
 - `docker-compose.yaml` currently starts Jaeger only (UI on 16686, OTLP on 4318) — Step 9 will expand it
 - 13 unit tests in `tests/` using `TestModel` — all pass in ~0.3s
-- `evals/run_evals.py` runs 20 eval cases across 3 agents in ~1s (CI mode)
+- `evals/run_evals.py` runs 9 eval cases across 3 agents in ~1s (CI mode)
 - `conftest.py` sets `ALLOW_MODEL_REQUESTS=False` and dummy `OPENAI_API_KEY`
 - Tools use both `RunContext[AgentDeps]` (context-aware) and plain signatures (no context)
 - `ModelRetry` is used in tools (`get_content_calendar`, `search_runbooks`) and capabilities (`BrandVoiceGuardrail`)

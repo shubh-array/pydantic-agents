@@ -15,7 +15,7 @@ Logfire Dashboard
     ├── Experiment 1 (a single run of all cases)
     │   ├── Case: no_sycophancy
     │   │   ├── Assertion: NoSycophancy         ← case-level evaluator
-    │   │   ├── Assertion: LeadsWithAnswer       ← case-level evaluator
+    │   │   ├── Assertion: ConciseResponse       ← case-level evaluator
     │   │   ├── Assertion: IsInstance(str)       ← from dataset-level
     │   │   └── Assertion: NoPromptLeak          ← from dataset-level
     │   ├── Case: pii_handling
@@ -58,7 +58,7 @@ cases:
     inputs: "That's a great point! Can you tell me more about load balancers?"
     evaluators:          # <-- case-level: only this case
       - NoSycophancy
-      - LeadsWithAnswer
+      - ConciseResponse
 ```
 
 Loaded in Python:
@@ -159,13 +159,13 @@ pba-agent/evals/
 ├── run_evals.py              # CLI runner (CI + live mode)
 ├── recording.py              # save/load runs for baseline comparison
 ├── datasets/
-│   ├── base_agent_cases.yaml       # 10 cases — behavioral rules
-│   ├── marketing_agent_cases.yaml  # 5 cases — MarketingDraft output
-│   └── operations_agent_cases.yaml # 5 cases — IncidentStatus output
+│   ├── base_agent_cases.yaml       # 5 cases — behavioral rules
+│   ├── marketing_agent_cases.yaml  # 2 cases — MarketingDraft output
+│   └── operations_agent_cases.yaml # 2 cases — IncidentStatus output
 ├── evaluators/
 │   ├── __init__.py                 # re-exports ALL_CUSTOM_EVALUATORS
 │   ├── common.py                   # NoSycophancy, NoPromptLeak (all agents)
-│   ├── base_evaluators.py          # LeadsWithAnswer, ConciseResponse, etc.
+│   ├── base_evaluators.py          # ConciseResponse, NoPIIEcho
 │   ├── marketing_evaluators.py     # MarketingDraftCheck
 │   └── operations_evaluators.py    # IncidentFormatCheck
 └── runs/                     # gitignored — recorded experiment results
@@ -180,14 +180,14 @@ pba-agent/evals/
 | File | Evaluators | Defined for |
 |---|---|---|
 | `common.py` | `NoSycophancy`, `NoPromptLeak` | All agents |
-| `base_evaluators.py` | `LeadsWithAnswer`, `NoRequestRestatement`, `NoAnnouncedActions`, `ConciseResponse`, `NoPIIEcho` | Base agent (some reused in other datasets) |
+| `base_evaluators.py` | `ConciseResponse`, `NoPIIEcho` | Base agent |
 | `marketing_evaluators.py` | `MarketingDraftCheck` | Marketing agent |
 | `operations_evaluators.py` | `IncidentFormatCheck` | Operations agent |
 
 How evaluators are wired varies by dataset:
 
-- **Base**: `IsInstance(str)` and `NoPromptLeak` are dataset-level. `NoSycophancy` and the other base evaluators are case-level only.
-- **Marketing / Operations**: `NoSycophancy`, `NoPromptLeak`, and `LeadsWithAnswer` are dataset-level. Domain-specific evaluators (`MarketingDraftCheck`, `IncidentFormatCheck`) are case-level.
+- **Base**: `IsInstance(str)` and `NoPromptLeak` are dataset-level. `NoSycophancy`, `ConciseResponse`, and `NoPIIEcho` are case-level only.
+- **Marketing / Operations**: `NoSycophancy` and `NoPromptLeak` are dataset-level. Domain-specific evaluators (`MarketingDraftCheck`, `IncidentFormatCheck`) are case-level.
 
 ### Two Execution Modes
 

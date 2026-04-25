@@ -1,13 +1,11 @@
 """Evaluators for the base agent's behavioral rules.
 
-These check rules from <non_negotiable>, <output_contract>, and
-<operating_defaults> in base-system-prompt.md.
+These check rules from <non_negotiable> and <output_contract> in
+base-system-prompt.md.
 
 NOTE: With TestModel the output is a single character ("a"), so these
 evaluators pass trivially.  They become meaningful in --live mode where
-the real model generates multi-sentence responses.  The evaluator
-infrastructure is intentionally built ahead of live testing so that
-`uv run python evals/run_evals.py --live` exercises them immediately.
+the real model generates multi-sentence responses.
 """
 
 from __future__ import annotations
@@ -16,86 +14,6 @@ import re
 from dataclasses import dataclass
 
 from pydantic_evals.evaluators import EvaluationReason, Evaluator, EvaluatorContext
-
-_PREAMBLE_PATTERNS = re.compile(
-    r"^\s*(let me|i('ll| will| would| am going to| can)|here('s| is) (what|how|my)|"
-    r"to answer (your|this)|i('d| would) like to|allow me to|"
-    r"before (i|we) (begin|start|dive)|first,? let me|"
-    r"i understand (you|your|that)|so,? you('re| are) asking)",
-    re.IGNORECASE,
-)
-
-_RESTATEMENT_PATTERNS = re.compile(
-    r"^\s*(you (asked|want|need|mentioned|said|requested)|"
-    r"your (question|request|ask) (is|was)|"
-    r"regarding your (question|request)|"
-    r"as (you|per your) (asked|requested|mentioned))",
-    re.IGNORECASE,
-)
-
-_ACTION_ANNOUNCE_PATTERNS = re.compile(
-    r"^\s*(i('m| am) going to|i('ll| will) (now |)(start|begin|proceed|check|look|search|find)|"
-    r"let me (start|begin|proceed|check|look|search|find)|"
-    r"(first|next),? i('ll| will))",
-    re.IGNORECASE,
-)
-
-
-@dataclass
-class LeadsWithAnswer(Evaluator):
-    """<output_contract> rule: 'Lead with the answer or the action taken.
-    Context follows, not precedes.'
-
-    Fails if the response opens with preamble, meta-commentary, or hedging
-    instead of the substantive answer.
-    """
-
-    def evaluate(self, ctx: EvaluatorContext) -> EvaluationReason:
-        text = str(ctx.output).strip()
-        if not text:
-            return EvaluationReason(value=True, reason="Empty output — skipped")
-        if _PREAMBLE_PATTERNS.search(text):
-            return EvaluationReason(
-                value=False, reason=f"Opens with preamble: {text[:80]!r}"
-            )
-        return EvaluationReason(value=True, reason="Leads with substantive content")
-
-
-@dataclass
-class NoRequestRestatement(Evaluator):
-    """<output_contract> rule: 'Do not restate the user's request before answering.'
-
-    Fails if the response begins by echoing or paraphrasing the user's input.
-    """
-
-    def evaluate(self, ctx: EvaluatorContext) -> EvaluationReason:
-        text = str(ctx.output).strip()
-        if not text:
-            return EvaluationReason(value=True, reason="Empty output — skipped")
-        if _RESTATEMENT_PATTERNS.search(text):
-            return EvaluationReason(
-                value=False, reason=f"Restates the request: {text[:80]!r}"
-            )
-        return EvaluationReason(value=True, reason="Does not restate the request")
-
-
-@dataclass
-class NoAnnouncedActions(Evaluator):
-    """<operating_defaults> rule: 'Do not announce what you are about to do
-    before doing it unless the user explicitly asked for status updates.'
-
-    Fails if the response starts with 'I'm going to...', 'Let me start by...', etc.
-    """
-
-    def evaluate(self, ctx: EvaluatorContext) -> EvaluationReason:
-        text = str(ctx.output).strip()
-        if not text:
-            return EvaluationReason(value=True, reason="Empty output — skipped")
-        if _ACTION_ANNOUNCE_PATTERNS.search(text):
-            return EvaluationReason(
-                value=False, reason=f"Announces action before doing it: {text[:80]!r}"
-            )
-        return EvaluationReason(value=True, reason="No pre-announced actions")
 
 
 @dataclass

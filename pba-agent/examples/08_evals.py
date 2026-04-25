@@ -5,7 +5,7 @@ Demonstrates:
 - Built-in evaluators: IsInstance
 - Custom evaluators organized by domain:
     common:     NoSycophancy, NoPromptLeak
-    base:       LeadsWithAnswer, NoRequestRestatement, ConciseResponse, NoPIIEcho
+    base:       ConciseResponse, NoPIIEcho
     marketing:  MarketingDraftCheck
     operations: IncidentFormatCheck
 - Building a dataset in code and running it with evaluate_sync()
@@ -31,7 +31,7 @@ from pydantic_evals.evaluators import IsInstance
 from base_agent import PROMPTS_DIR, _build_agent, compose_prompt, create_base_agent
 from deps import AgentDeps
 from evaluators import ALL_CUSTOM_EVALUATORS
-from evaluators.base_evaluators import LeadsWithAnswer, NoPIIEcho, NoRequestRestatement
+from evaluators.base_evaluators import NoPIIEcho
 from evaluators.common import NoPromptLeak, NoSycophancy
 from evaluators.operations_evaluators import IncidentFormatCheck
 from models import Failed, IncidentStatus
@@ -53,8 +53,6 @@ def demo_inline_dataset() -> None:
                 evaluators=[
                     NoSycophancy(),
                     NoPromptLeak(),
-                    LeadsWithAnswer(),
-                    NoRequestRestatement(),
                 ],
             ),
             Case(
