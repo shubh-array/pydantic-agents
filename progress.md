@@ -14,9 +14,8 @@
 | 4 | Structured Output | Done |
 | 5 | Function Tools | Done |
 | 6 | Capabilities | Done |
-| 7 | Observability | Not started |
+| 7 | Observability + Docker Infrastructure | Done |
 | 8 | Evaluation Pipeline | Not started |
-| 9 | Docker Infrastructure | Not started |
 
 ---
 
@@ -82,6 +81,7 @@ Created stub tools for both domains. Marketing tools: `search_brand_assets` (Run
 ```
 pba-agent/
 ├── .env                          # OPENAI_API_KEY (user-created)
+├── docker-compose.yaml           # Jaeger service (Step 7)
 ├── prompts/                      # Existing prompt files (untouched)
 │   ├── base-system-prompt.md
 │   ├── marketing-agent-prompt.md
@@ -98,6 +98,7 @@ pba-agent/
 │   ├── base_agent.py             # Base factory + shared helpers
 │   ├── marketing_agent.py        # Marketing domain factory
 │   ├── operations_agent.py       # Operations domain factory
+│   ├── observability.py          # configure_tracing() helper (Step 7)
 │   ├── tools/                    # Function tools by domain (Step 5)
 │   │   ├── __init__.py
 │   │   ├── marketing_tools.py
@@ -106,13 +107,20 @@ pba-agent/
 │       ├── __init__.py
 │       ├── audit_logger.py
 │       └── brand_voice.py
+├── tests/                        # Unit tests using TestModel (Step 7)
+│   ├── __init__.py
+│   ├── conftest.py               # Path setup, ALLOW_MODEL_REQUESTS, dummy API key
+│   ├── test_base_agent.py
+│   ├── test_marketing_agent.py
+│   └── test_operations_agent.py
 └── examples/
     ├── 01_agent_basics.py        # Step 1
     ├── 02_base_agent.py          # Step 2
     ├── 03_domain_agents.py       # Step 3
     ├── 04_structured_output.py   # Step 4
     ├── 05_tools.py               # Step 5
-    └── 06_capabilities.py        # Step 6
+    ├── 06_capabilities.py        # Step 6
+    └── 07_observability.py       # Step 7
 ```
 
 ### Step 6: Capabilities
@@ -135,39 +143,81 @@ Built two custom capabilities by subclassing `AbstractCapability`. `AuditLogger`
 - `pba-agent/src/base_agent.py` — added `capabilities` parameter to `_build_agent()`
 - `pba-agent/examples/06_capabilities.py`
 
+### Step 7: Observability + Docker Infrastructure
+
+Combined original Steps 7 and 9. Since traces export to a local Jaeger container via OpenTelemetry, Docker Compose is introduced naturally as part of observability rather than as a separate step.
+
+**Observability setup:** Created `src/observability.py` with a `configure_tracing()` helper that wraps `logfire.configure(send_to_logfire=False)` + `logfire.instrument_pydantic_ai()`. By default, traces go to a local Jaeger instance at `http://localhost:4318` (the OTel HTTP endpoint). If `LOGFIRE_TOKEN` is set, Logfire cloud is enabled alongside the local backend.
+
+**Docker Compose:** A single `docker-compose.yaml` at `pba-agent/` starts `jaegertracing/all-in-one:latest` with the Jaeger UI on port 16686 and the OTLP receiver on port 4318. One command: `docker compose up -d`.
+
+**Unit tests with TestModel:** Wrote 13 unit tests across three files using `TestModel` — no OpenAI API calls, no cost, deterministic. Tests verify agent factory functions, `TestModel` output, `capture_run_messages()` message capture, and `compose_prompt()` domain insertion. A `conftest.py` sets `ALLOW_MODEL_REQUESTS = False` as a safety net and adds `src/` to `sys.path`. All tests pass in ~0.3s.
+
+**Key concepts learned:**
+- `logfire.configure(send_to_logfire=False)` + `OTEL_EXPORTER_OTLP_ENDPOINT` sends traces to any OTel-compatible backend (Jaeger, Grafana Tempo, SigNoz)
+- `logfire.instrument_pydantic_ai()` auto-instruments all agent runs with spans for model requests, tool calls, and token usage
+- `TestModel` generates valid structured data from tool/output JSON schemas — no ML, just procedural Python
+- `agent.override(model=TestModel())` swaps the model in a context block without touching application code
+- `ALLOW_MODEL_REQUESTS = False` blocks accidental real API calls in tests
+- `capture_run_messages()` captures the full message exchange for assertions and debugging
+- A dummy `OPENAI_API_KEY` is needed in tests because agent construction initialises the OpenAI provider even when TestModel will override it at run time
+
+**Files:**
+- `pba-agent/src/observability.py` — `configure_tracing()` helper
+- `pba-agent/docker-compose.yaml` — Jaeger service
+- `pba-agent/tests/__init__.py`
+- `pba-agent/tests/conftest.py` — path setup, ALLOW_MODEL_REQUESTS, dummy API key
+- `pba-agent/tests/test_base_agent.py` — 5 tests
+- `pba-agent/tests/test_marketing_agent.py` — 4 tests
+- `pba-agent/tests/test_operations_agent.py` — 4 tests
+- `pba-agent/examples/07_observability.py`
+- Updated `pyproject.toml` — added `logfire` extra to `pydantic-ai-slim`
+- Updated `.env.example` — added `LOGFIRE_TOKEN` and `OTEL_EXPORTER_OTLP_ENDPOINT`
+
 ---
 
-## How to Resume (Step 7: Observability)
+## How to Resume (Step 8: Evaluation Pipeline)
 
 ### Spec reference
 
-Open `docs/superpowers/specs/2026-04-24-pydantic-ai-learning-path-design.md` and go to **Section 5, Step 7** (around line 317).
+Open `docs/superpowers/specs/2026-04-24-pydantic-ai-learning-path-design.md` and go to **Section 5, Step 8** (around line 343).
 
-### What Step 7 covers
+### What Step 8 covers
 
-- Logfire SDK: `logfire.configure()`, `logfire.instrument_pydantic_ai()`
-- Tracing agent runs: messages, tool calls, token usage, latency
-- `TestModel` for unit testing without hitting OpenAI
-- `agent.override(deps=...)` for test dependency injection
-- `capture_run_messages()` for debugging
-- Files to produce: `examples/07_observability.py`, `tests/__init__.py`, `tests/test_base_agent.py`, `tests/test_marketing_agent.py`, `tests/test_operations_agent.py`
+- `pydantic-evals`: `Dataset`, `Case`, evaluators
+- Built-in evaluators: `IsInstance`, `LLMJudge`, `Contains`, etc.
+- Custom evaluators for domain-specific checks (brand voice, incident format)
+- Dataset serialization (YAML)
+- Multi-run evaluation for consistency measurement
+- Logfire integration for eval visualization
+- Files to produce: `evals/datasets/*.yaml`, `evals/evaluators/__init__.py`, `evals/run_evals.py`, `examples/08_evals.py`
 
 ### Docs to fetch first (docs-first protocol)
 
-Per the spec's Section 3 table, fetch these PydanticAI docs before coding Step 7:
+Per the spec's Section 3 table, fetch these PydanticAI docs before coding Step 8:
 
 1. `list_doc_sources` via MCP `ai-docs`
-2. `fetch_docs` on `https://pydantic.dev/docs/ai/integrations/logfire/index.md` (Logfire integration)
-3. `fetch_docs` on `https://pydantic.dev/docs/ai/guides/testing/index.md` (Testing)
+2. `fetch_docs` on `https://pydantic.dev/docs/ai/evals/getting-started/quick-start/index.md`
+3. `fetch_docs` on `https://pydantic.dev/docs/ai/evals/getting-started/core-concepts/index.md`
+4. `fetch_docs` on `https://pydantic.dev/docs/ai/evals/evaluators/custom/index.md`
+5. `fetch_docs` on `https://pydantic.dev/docs/ai/evals/how-to/dataset-management/index.md`
 
 Note: PydanticAI docs have migrated from `ai.pydantic.dev` to `pydantic.dev/docs/ai/`. The MCP server's allowed domains may need the redirect-aware `WebFetch` tool as a fallback.
 
-### How to run examples
+### How to run
 
 ```bash
 cd pba-agent
-env $(cat .env) uv run python examples/07_observability.py
+
+# Run unit tests (no API key needed)
 uv run pytest tests/
+
+# Start Jaeger + run the observability example
+docker compose up -d
+env $(cat .env) uv run python examples/07_observability.py
+
+# Run evals (after Step 8 is complete)
+env $(cat .env) uv run python evals/run_evals.py
 ```
 
 ### Key context for the new session
@@ -179,6 +229,10 @@ uv run pytest tests/
 - Output models live in `src/models.py`: `MarketingDraft`, `IncidentStatus`, `Failed`
 - Tool stubs live in `src/tools/`: `marketing_tools.py` and `operations_tools.py`
 - Custom capabilities live in `src/capabilities/`: `AuditLogger` and `BrandVoiceGuardrail`
+- `src/observability.py` exports `configure_tracing()` — wraps Logfire SDK + OTel to Jaeger
+- `docker-compose.yaml` starts Jaeger (UI on 16686, OTLP on 4318)
+- 13 unit tests in `tests/` using `TestModel` — all pass in ~0.3s
+- `conftest.py` sets `ALLOW_MODEL_REQUESTS=False` and dummy `OPENAI_API_KEY`
 - Tools use both `RunContext[AgentDeps]` (context-aware) and plain signatures (no context)
 - `ModelRetry` is used in tools (`get_content_calendar`, `search_runbooks`) and capabilities (`BrandVoiceGuardrail`)
 - Example scripts use `sys.path.insert(0, 'src')` for imports (no package install)
