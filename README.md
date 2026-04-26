@@ -1,6 +1,11 @@
 # pydantic-agents POC
 
-The goal of this POC is to explore how the existing coding agentic infrastructure within Array (PBA) can be leveraged to build a foundational framework for building new PBA customer facing agents and review existing PBA agents in a reliable, deterministic, governed and secure fashion. The current infrastructure consists of Cursor coding agents (local - CLI, IDE and remote - Cloud agents) for agent code development, and the agents themseleves are built using Pydantic AI SDK libraries in python and are deployed in Azure containers.
+The goal of this POC is to explore how the existing coding agentic infrastructure within Array (PBA) can be leveraged to build a foundational agent development framework for building new PBA customer facing agents and review existing PBA agents in a reliable, deterministic, governed and secure fashion. 
+
+
+## Existing Array Infra
+
+The current infrastructure consists of Cursor coding agents (local - CLI, IDE and remote - Cloud agents) for agent code development, and the agents themseleves are built using Pydantic AI SDK libraries in python and are deployed in Azure containers.
 
 ## Research Questions
 
