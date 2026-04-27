@@ -6,7 +6,6 @@ Demonstrates:
 - Custom evaluators organized by domain:
     common:     NoSycophancy, NoPromptLeak
     base:       ConciseResponse, NoPIIEcho
-    marketing:  MarketingDraftCheck
     operations: IncidentFormatCheck
 - Building a dataset in code and running it with evaluate_sync()
 - Loading a dataset from YAML with custom evaluator types
@@ -121,7 +120,9 @@ def demo_load_from_yaml() -> None:
     """Load a dataset from YAML and run it — shows the serialization workflow."""
     print("\n=== Demo 3: Load Dataset from YAML ===\n")
 
-    yaml_path = Path(__file__).resolve().parent.parent / "evals" / "datasets" / "base_agent_cases.yaml"
+    yaml_path = (
+        Path(__file__).resolve().parent.parent / "evals" / "datasets" / "base_agent_cases.yaml"
+    )
     dataset: Dataset[str, str, Any] = Dataset.from_file(
         yaml_path,
         custom_evaluator_types=ALL_CUSTOM_EVALUATORS,

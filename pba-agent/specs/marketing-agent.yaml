@@ -1,5 +1,0 @@
-model: openai:gpt-4.1-mini
-name: pba-marketing-agent
-model_settings:
-  temperature: 0.5
-  max_tokens: 2048

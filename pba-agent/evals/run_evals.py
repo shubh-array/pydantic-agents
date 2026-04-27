@@ -45,31 +45,16 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from pydantic_ai.models.test import TestModel
 from pydantic_evals import Dataset
 
-from base_agent import PROMPTS_DIR, _build_agent, compose_prompt, create_base_agent
+from base_agent import PROMPTS_DIR, _build_agent, create_base_agent
 from deps import AgentDeps
 from evaluators import ALL_CUSTOM_EVALUATORS
-from models import Failed, IncidentStatus, MarketingDraft
+from models import Failed, IncidentStatus
 from recording import load_baseline, save_run
-from tools.marketing_tools import check_competitor_claims, get_content_calendar, search_brand_assets
 from tools.operations_tools import check_deploy_status, query_monitoring, search_runbooks
 
 DATASETS_DIR = Path(__file__).resolve().parent / "datasets"
 
-MARKETING_TOOLS = [search_brand_assets, get_content_calendar, check_competitor_claims]
 OPERATIONS_TOOLS = [query_monitoring, check_deploy_status, search_runbooks]
-
-
-def _make_marketing_agent(*, include_tools: bool = True, model: str | None = None):
-    domain_prompt = (PROMPTS_DIR / "marketing-agent-prompt.md").read_text()
-    instructions = compose_prompt(domain_prompt)
-    return _build_agent(
-        "marketing-agent.yaml",
-        instructions,
-        domain="marketing",
-        model=model,
-        output_type=[MarketingDraft, Failed],
-        tools=MARKETING_TOOLS if include_tools else None,
-    )
 
 
 def _make_operations_agent(*, include_tools: bool = True, model: str | None = None):
@@ -150,7 +135,6 @@ def main() -> None:
     # covered by unit tests in tests/.
     agents = {
         "base": create_base_agent(),
-        "marketing": _make_marketing_agent(include_tools=is_live),
         "operations": _make_operations_agent(include_tools=is_live),
         "hr": _make_hr_agent(),
         "voice": _make_hr_agent(),
@@ -158,7 +142,6 @@ def main() -> None:
 
     datasets = {
         "base": "base_agent_cases.yaml",
-        "marketing": "marketing_agent_cases.yaml",
         "operations": "operations_agent_cases.yaml",
         "hr": "hr_agent_cases.yaml",
         "voice": "voice_cases.yaml",

@@ -1,7 +1,6 @@
-"""Brand-voice guardrail capability for marketing agents.
+"""Brand-voice guardrail capability.
 
-Scans model responses for forbidden phrasings defined in the marketing
-prompt's ``<brand_voice_extensions>`` section and triggers a retry when
+Scans model responses for forbidden phrasings and triggers a retry when
 one is found.
 """
 
@@ -33,7 +32,7 @@ _FORBIDDEN_RE = re.compile(
 
 @dataclass
 class BrandVoiceGuardrail(AbstractCapability[Any]):
-    """Rejects model responses that contain forbidden marketing phrasings.
+    """Rejects model responses that contain forbidden phrasings.
 
     When a forbidden phrase is detected, the capability raises ``ModelRetry``
     so the model can self-correct.  Violations are recorded in ``violations``

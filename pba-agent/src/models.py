@@ -9,15 +9,6 @@ class Failed(BaseModel):
     reason: str = Field(description="Why the request could not be completed")
 
 
-class MarketingDraft(BaseModel):
-    """A marketing content draft for a specific channel."""
-
-    channel: str = Field(description="Target channel, e.g. LinkedIn, Twitter, blog")
-    content: str = Field(description="The draft copy")
-    word_count: int = Field(description="Word count of the content field")
-    tone: str = Field(description="Tone used, e.g. professional, casual, inspirational")
-
-
 class IncidentStatus(BaseModel):
     """Structured incident status update following SEV format."""
 
