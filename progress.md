@@ -45,35 +45,29 @@ Loaded the full `base-system-prompt.md` (176 lines of XML-tagged instructions) a
 
 ### Step 3: Domain Agent Composition
 
-Built marketing and operations agents that compose the base prompt with domain-specific content. The `compose_prompt()` function reads `base-system-prompt.md` and inserts domain content into the `<domain_extension>` tag via string replacement. Each domain has its own YAML spec (different temperature/token settings) but shares `AgentDeps` and the base prompt's non-negotiable rules. The `_build_agent()` shared helper was extracted to keep domain factories DRY (3 lines each). Verified: marketing agent produces LinkedIn-format posts with brand voice; operations agent uses the exact SEV/Status/Impact/Hypothesis incident format; both refuse to reveal their prompts.
+Built operations agents that compose the base prompt with domain-specific content. The `compose_prompt()` function reads `base-system-prompt.md` and inserts domain content into the `<domain_extension>` tag via string replacement. Each domain has its own YAML spec (different temperature/token settings) but shares `AgentDeps` and the base prompt's non-negotiable rules. The `_build_agent()` shared helper was extracted to keep domain factories DRY (3 lines each). Verified: operations agent uses the exact SEV/Status/Impact/Hypothesis incident format; refuses to reveal its prompt.
 
 **Files:**
 - `pba-agent/src/base_agent.py` — refactored with `compose_prompt()` and `_build_agent()`
-- `pba-agent/src/marketing_agent.py` — `create_marketing_agent()` factory
 - `pba-agent/src/operations_agent.py` — `create_operations_agent()` factory
-- `pba-agent/specs/marketing-agent.yaml`
 - `pba-agent/specs/operations-agent.yaml`
-- `pba-agent/examples/03_domain_agents.py`
 
 ### Step 4: Structured Output
 
-Defined Pydantic `BaseModel` output types (`MarketingDraft`, `IncidentStatus`, `Failed`) in `src/models.py`. Extended `_build_agent()` with an `output_type` parameter (defaults to `str` for backward compatibility). Used list-style union output (`output_type=[MarketingDraft, Failed]`) so each type registers as a separate output tool — no `type: ignore` needed. Verified: marketing agent returns a typed `MarketingDraft` with channel/word_count/tone/content fields; operations agent returns a typed `IncidentStatus` with sev/status/impact/hypothesis/next_steps; impossible requests return `Failed` with a reason.
+Defined Pydantic `BaseModel` output types (`IncidentStatus`, `Failed`) in `src/models.py`. Extended `_build_agent()` with an `output_type` parameter (defaults to `str` for backward compatibility). Used list-style union output (`output_type=[IncidentStatus, Failed]`) so each type registers as a separate output tool — no `type: ignore` needed. Verified: operations agent returns a typed `IncidentStatus` with sev/status/impact/hypothesis/next_steps; impossible requests return `Failed` with a reason.
 
 **Files:**
-- `pba-agent/src/models.py` — `MarketingDraft`, `IncidentStatus`, `Failed` output models
+- `pba-agent/src/models.py` — `IncidentStatus`, `Failed` output models
 - `pba-agent/src/base_agent.py` — added `output_type` parameter to `_build_agent()`
-- `pba-agent/examples/04_structured_output.py`
 
 ### Step 5: Function Tools
 
-Created stub tools for both domains. Marketing tools: `search_brand_assets` (RunContext — accesses company name), `get_content_calendar` (RunContext + ModelRetry for invalid channels), `check_competitor_claims` (plain — no context needed). Operations tools: `query_monitoring` (RunContext), `check_deploy_status` (plain), `search_runbooks` (plain + ModelRetry for unmatched queries). Tools are registered via the `tools` list argument to `Agent` (through `_build_agent()`), making them reusable across agents. PydanticAI auto-generates tool schemas from type hints and Google-style docstrings. Verified: operations agent calls `query_monitoring` + `check_deploy_status` and synthesizes an `IncidentStatus`; marketing agent calls `get_content_calendar` and reasons about scheduling; message trace shows tool call/return pairs.
+Created stub tools for the operations domain: `query_monitoring` (RunContext), `check_deploy_status` (plain), `search_runbooks` (plain + ModelRetry for unmatched queries). Tools are registered via the `tools` list argument to `Agent` (through `_build_agent()`), making them reusable across agents. PydanticAI auto-generates tool schemas from type hints and Google-style docstrings. Verified: operations agent calls `query_monitoring` + `check_deploy_status` and synthesizes an `IncidentStatus`; message trace shows tool call/return pairs.
 
 **Files:**
 - `pba-agent/src/tools/__init__.py`
-- `pba-agent/src/tools/marketing_tools.py` — `search_brand_assets`, `get_content_calendar`, `check_competitor_claims`
 - `pba-agent/src/tools/operations_tools.py` — `query_monitoring`, `check_deploy_status`, `search_runbooks`
 - `pba-agent/src/base_agent.py` — added `tools` parameter to `_build_agent()`
-- `pba-agent/examples/05_tools.py`
 
 ---
 
@@ -88,24 +82,20 @@ pba-agent/
 │   └── start-jaeger.sh           # Download + run Jaeger binary (Step 7)
 ├── prompts/                      # Existing prompt files (untouched)
 │   ├── base-system-prompt.md
-│   ├── marketing-agent-prompt.md
 │   └── operations-agent-prompt.md
 ├── specs/                        # YAML Agent Specs
 │   ├── hello-agent.yaml          # Step 1 (tutorial-only)
 │   ├── base-agent.yaml           # Step 2
-│   ├── marketing-agent.yaml      # Step 3
 │   └── operations-agent.yaml     # Step 3
 ├── src/
 │   ├── __init__.py
 │   ├── deps.py                   # AgentDeps dataclass
 │   ├── models.py                 # Pydantic output models (Step 4)
 │   ├── base_agent.py             # Base factory + shared helpers
-│   ├── marketing_agent.py        # Marketing domain factory
 │   ├── operations_agent.py       # Operations domain factory
 │   ├── observability.py          # configure_tracing() helper (Step 7)
 │   ├── tools/                    # Function tools by domain (Step 5)
 │   │   ├── __init__.py
-│   │   ├── marketing_tools.py
 │   │   └── operations_tools.py
 │   └── capabilities/             # Custom capabilities (Step 6)
 │       ├── __init__.py
@@ -117,18 +107,15 @@ pba-agent/
 │   │   ├── __init__.py           # Re-exports ALL_CUSTOM_EVALUATORS
 │   │   ├── common.py             # NoSycophancy, NoPromptLeak
 │   │   ├── base_evaluators.py    # ConciseResponse, NoPIIEcho
-│   │   ├── marketing_evaluators.py  # MarketingDraftCheck
 │   │   └── operations_evaluators.py # IncidentFormatCheck
 │   ├── datasets/
 │   │   ├── base_agent_cases.yaml
-│   │   ├── marketing_agent_cases.yaml
 │   │   └── operations_agent_cases.yaml
 │   └── run_evals.py              # Standardized eval runner
 ├── tests/                        # Unit tests using TestModel (Step 7)
 │   ├── __init__.py
 │   ├── conftest.py               # Path setup, ALLOW_MODEL_REQUESTS, dummy API key
 │   ├── test_base_agent.py
-│   ├── test_marketing_agent.py
 │   └── test_operations_agent.py
 └── examples/
     ├── 01_agent_basics.py        # Step 1
@@ -143,7 +130,7 @@ pba-agent/
 
 ### Step 6: Capabilities
 
-Built two custom capabilities by subclassing `AbstractCapability`. `AuditLogger` uses `wrap_model_request` and `wrap_tool_execute` lifecycle hooks to log every model request and tool execution with timing data to an in-memory audit trail. `BrandVoiceGuardrail` uses `after_model_request` to scan model responses for forbidden marketing phrasings (from the `<brand_voice_extensions>` section) and raises `ModelRetry` when a violation is found, forcing the model to self-correct. Extended `_build_agent()` with a `capabilities` parameter so domain factories can pass capabilities into the agent constructor via `Agent.from_spec()`. Verified: audit logger captures all model requests and tool calls with timing; guardrail is active and would trigger retries on forbidden phrasings; both capabilities compose cleanly on the same agent.
+Built two custom capabilities by subclassing `AbstractCapability`. `AuditLogger` uses `wrap_model_request` and `wrap_tool_execute` lifecycle hooks to log every model request and tool execution with timing data to an in-memory audit trail. `BrandVoiceGuardrail` uses `after_model_request` to scan model responses for forbidden phrasings and raises `ModelRetry` when a violation is found, forcing the model to self-correct. Extended `_build_agent()` with a `capabilities` parameter so domain factories can pass capabilities into the agent constructor via `Agent.from_spec()`. Verified: audit logger captures all model requests and tool calls with timing; guardrail is active and would trigger retries on forbidden phrasings; both capabilities compose cleanly on the same agent.
 
 **Key concepts learned:**
 - `AbstractCapability` is the base class for reusable, composable agent behavior
@@ -157,7 +144,7 @@ Built two custom capabilities by subclassing `AbstractCapability`. `AuditLogger`
 **Files:**
 - `pba-agent/src/capabilities/__init__.py`
 - `pba-agent/src/capabilities/audit_logger.py` — `AuditLogger` (cross-cutting, logs model requests + tool calls)
-- `pba-agent/src/capabilities/brand_voice.py` — `BrandVoiceGuardrail` (marketing-specific, rejects forbidden phrasings)
+- `pba-agent/src/capabilities/brand_voice.py` — `BrandVoiceGuardrail` (rejects forbidden phrasings)
 - `pba-agent/src/base_agent.py` — added `capabilities` parameter to `_build_agent()`
 - `pba-agent/examples/06_capabilities.py`
 
@@ -188,7 +175,6 @@ Combined original Steps 7 and 9. Since traces export to a local Jaeger container
 - `pba-agent/tests/__init__.py`
 - `pba-agent/tests/conftest.py` — path setup, ALLOW_MODEL_REQUESTS, dummy API key
 - `pba-agent/tests/test_base_agent.py` — 5 tests
-- `pba-agent/tests/test_marketing_agent.py` — 4 tests
 - `pba-agent/tests/test_operations_agent.py` — 4 tests
 - `pba-agent/examples/07_observability.py`
 - Updated `pyproject.toml` — added `logfire` extra to `pydantic-ai-slim`
@@ -196,7 +182,7 @@ Combined original Steps 7 and 9. Since traces export to a local Jaeger container
 
 ### Step 8: Evaluation Pipeline
 
-Built a complete evaluation pipeline using `pydantic-evals`. Created six custom evaluators (`NoSycophancy`, `NoPromptLeak`, `ConciseResponse`, `NoPIIEcho`, `MarketingDraftCheck`, `IncidentFormatCheck`) that cover behavioral compliance, security, and domain correctness. Each evaluator demonstrates a distinct pydantic-evals pattern: simple regex check, fragment-list security, configurable dataclass field, multi-assertion dict return, and structured output validation. Created three YAML eval datasets (base 5 cases, marketing 2 cases, operations 2 cases) covering behavioral compliance, domain correctness, and edge cases. Built a standardized runner (`evals/run_evals.py`) that supports two modes: CI mode (default, uses `TestModel`, no API key, deterministic) and live mode (`--live` flag, uses real OpenAI model). The example script (`08_evals.py`) demonstrates three workflows: inline dataset creation, structured-output evaluation, and loading datasets from YAML.
+Built a complete evaluation pipeline using `pydantic-evals`. Created custom evaluators (`NoSycophancy`, `NoPromptLeak`, `ConciseResponse`, `NoPIIEcho`, `IncidentFormatCheck`) that cover behavioral compliance, security, and domain correctness. Each evaluator demonstrates a distinct pydantic-evals pattern: simple regex check, fragment-list security, configurable dataclass field, multi-assertion dict return, and structured output validation. Created YAML eval datasets (base 5 cases, operations 2 cases) covering behavioral compliance, domain correctness, and edge cases. Built a standardized runner (`evals/run_evals.py`) that supports two modes: CI mode (default, uses `TestModel`, no API key, deterministic) and live mode (`--live` flag, uses real OpenAI model). The example script (`08_evals.py`) demonstrates three workflows: inline dataset creation, structured-output evaluation, and loading datasets from YAML.
 
 **Design decision — tools in evals:** `TestModel` generates procedural tool arguments that don't satisfy semantic validation in stub tools (e.g., `get_content_calendar` rejects synthetic channel names via `ModelRetry`). Tools are therefore excluded in CI mode — tool behavior is independently covered by the 13 unit tests. In `--live` mode, tools are included and the full agent pipeline is exercised.
 
@@ -214,13 +200,11 @@ Built a complete evaluation pipeline using `pydantic-evals`. Created six custom 
 
 **Files:**
 - `pba-agent/evals/__init__.py`
-- `pba-agent/evals/evaluators/__init__.py` — re-exports `ALL_CUSTOM_EVALUATORS` (6 classes)
+- `pba-agent/evals/evaluators/__init__.py` — re-exports `ALL_CUSTOM_EVALUATORS`
 - `pba-agent/evals/evaluators/common.py` — `NoSycophancy`, `NoPromptLeak`
 - `pba-agent/evals/evaluators/base_evaluators.py` — `ConciseResponse`, `NoPIIEcho`
-- `pba-agent/evals/evaluators/marketing_evaluators.py` — `MarketingDraftCheck`
 - `pba-agent/evals/evaluators/operations_evaluators.py` — `IncidentFormatCheck`
 - `pba-agent/evals/datasets/base_agent_cases.yaml` — 5 cases (behavioral + edge case)
-- `pba-agent/evals/datasets/marketing_agent_cases.yaml` — 2 cases (domain + behavioral)
 - `pba-agent/evals/datasets/operations_agent_cases.yaml` — 2 cases (domain + behavioral)
 - `pba-agent/evals/run_evals.py` — standardized eval runner (CI + live modes)
 - `pba-agent/examples/08_evals.py` — tutorial walkthrough (3 demos)
@@ -237,7 +221,7 @@ Open `docs/superpowers/specs/2026-04-24-pydantic-ai-learning-path-design.md` and
 ### What Step 9 covers
 
 - Dockerfile with multi-stage build (slim production image)
-- Docker Compose for orchestrating agent services (base, marketing, operations)
+- Docker Compose for orchestrating agent services (base, operations)
 - Environment variable management (`.env` files, secrets)
 - Service-per-agent pattern (same image, different entrypoints via `AGENT_SPEC_PATH`)
 - Health checks and graceful shutdown
@@ -273,11 +257,11 @@ docker compose down                # Option B
 ### Key context for the new session
 
 - All domain agents share `AgentDeps` from `src/deps.py`
-- Factory functions are in `src/base_agent.py`, `src/marketing_agent.py`, `src/operations_agent.py`
+- Factory functions are in `src/base_agent.py`, `src/operations_agent.py`
 - `src/base_agent.py` exports `compose_prompt()` and `_build_agent()` for reuse
 - `_build_agent()` accepts `output_type`, `tools`, and `capabilities` params — added in Steps 4-6
-- Output models live in `src/models.py`: `MarketingDraft`, `IncidentStatus`, `Failed`
-- Tool stubs live in `src/tools/`: `marketing_tools.py` and `operations_tools.py`
+- Output models live in `src/models.py`: `IncidentStatus`, `Failed`
+- Tool stubs live in `src/tools/`: `operations_tools.py`
 - Custom capabilities live in `src/capabilities/`: `AuditLogger` and `BrandVoiceGuardrail`
 - `src/observability.py` exports `configure_tracing()` — wraps Logfire SDK + OTel to Jaeger
 - `docker-compose.yaml` currently starts Jaeger only (UI on 16686, OTLP on 4318) — Step 9 will expand it

@@ -1,5 +1,25 @@
 """Standardized evaluation runner for all PBA domain agents.
 
+Evaluates each domain agent (base, operations, HR, voice) against
+YAML-defined test-case datasets using pydantic-evals.
+
+For every agent the runner does the following:
+
+- 1. loads the corresponding Dataset from ``datasets/``,
+- 2. wraps the agent in a sync callable via `_make_task`, and
+- 3. calls `Dataset.evaluate_sync()` which feeds each case prompt to the agent and scores the output with the custom evaluators registered in `evaluators.py`.
+
+Two modes are supported:
+
+* **CI mode** (default) — swaps the real LLM for ``TestModel`` so tests are
+  deterministic and need no API key.  Tools are disabled because TestModel
+  generates synthetic arguments that trip the tool stubs.
+
+* **Live mode** (``--live``) — runs against the real OpenAI model with tools
+  enabled, optionally traces to Logfire, and persists reports + summaries
+  under ``evals/runs/<timestamp>/``.  A ``--baseline`` flag lets you diff
+  results against a previous run.
+
 Usage (from pba-agent/ directory):
 
     # CI mode — uses TestModel, no API key needed, deterministic
@@ -65,6 +85,18 @@ def _make_operations_agent(*, include_tools: bool = True, model: str | None = No
     )
 
 
+def _make_hr_agent(*, include_tools: bool = False, model: str | None = None):
+    """Build the HR agent from the pre-rendered prompt at _generated/hr.md.
+
+    The HR prompt is fully assembled at render time from voice-spec.yaml +
+    inlined skills. ``include_tools`` is accepted for symmetry; HR has no
+    tools yet in Phase 1.
+    """
+    _ = include_tools  # reserved for Phase 2 HR tools
+    instructions = (PROMPTS_DIR / "_generated" / "hr.md").read_text()
+    return _build_agent("hr-agent.yaml", instructions, domain="hr", model=model)
+
+
 def _make_task(agent, deps: AgentDeps, use_test_model: bool):
     """Return a sync callable (str) -> Any that runs the agent."""
 
@@ -121,12 +153,16 @@ def main() -> None:
         "base": create_base_agent(),
         "marketing": _make_marketing_agent(include_tools=is_live),
         "operations": _make_operations_agent(include_tools=is_live),
+        "hr": _make_hr_agent(),
+        "voice": _make_hr_agent(),
     }
 
     datasets = {
         "base": "base_agent_cases.yaml",
         "marketing": "marketing_agent_cases.yaml",
         "operations": "operations_agent_cases.yaml",
+        "hr": "hr_agent_cases.yaml",
+        "voice": "voice_cases.yaml",
     }
 
     # Load baseline for comparison (live mode only)

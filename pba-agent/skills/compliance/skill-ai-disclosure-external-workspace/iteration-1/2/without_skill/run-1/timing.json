@@ -1,0 +1,13 @@
+{
+  "total_duration_seconds": 12.276,
+  "total_duration_api_seconds": 12.276,
+  "total_tokens": 4017,
+  "tokens_detail": {
+    "input": 3272,
+    "output": 745,
+    "cacheReadTokens": 25216,
+    "cacheWriteTokens": 0
+  },
+  "status": "ok",
+  "exit_code": 0
+}

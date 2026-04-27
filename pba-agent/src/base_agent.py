@@ -13,7 +13,8 @@ SPECS_DIR = Path(__file__).resolve().parent.parent / "specs"
 
 _DOMAIN_PLACEHOLDER = (
     "<domain_extension>\n"
-    "<!-- assembled at runtime; empty when no domain is specialized -->\n"
+    "<!-- domain-extension:begin -->\n"
+    "<!-- domain-extension:end -->\n"
     "</domain_extension>"
 )
 

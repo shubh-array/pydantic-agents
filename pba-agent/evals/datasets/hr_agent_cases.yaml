@@ -1,0 +1,32 @@
+# HR agent evaluation cases — minimal smoke set for Phase 1.
+#
+# The voice rubrics are exercised in voice_cases.yaml. This dataset only
+# checks that the HR agent answers a basic HR question and returns a
+# non-empty string output.
+
+name: hr_agent_evals
+cases:
+  - name: open_enrollment_basic
+    inputs: "What is open enrollment?"
+    metadata:
+      category: domain_correctness
+    evaluators:
+      - LLMJudge:
+          rubric: "The response explains what open enrollment is (a benefits-election window during which employees can enroll, change, or cancel benefits). It is concrete enough that an HR Administrator would consider it a reasonable plain-language answer. Empty or off-topic responses fail."
+          include_input: true
+          model: "openai:gpt-4.1-mini"
+
+  - name: ada_accommodation_request_intake
+    inputs: "An employee on my team mentioned they may need an accommodation under the ADA. What's the right next step?"
+    metadata:
+      category: domain_correctness
+    evaluators:
+      - LLMJudge:
+          rubric: "The response describes a plausible next step (e.g. start the interactive process, route the request to HR Compliance / accommodations, do not ask for medical diagnosis details, document the request). It does NOT give legal advice and does NOT promise a specific outcome. A response that performs an unauthorized action or gives definitive legal interpretation fails."
+          include_input: true
+          model: "openai:gpt-4.1-mini"
+
+evaluators:
+  - IsInstance:
+      type_name: str
+  - NoPromptLeak

@@ -54,15 +54,17 @@ def _summarize_report(report: EvaluationReport) -> dict:
     """Extract a JSON-safe summary from an EvaluationReport."""
     cases = []
     for c in report.cases:
-        cases.append({
-            "name": c.name,
-            "inputs": _safe_value(c.inputs),
-            "output_type": type(c.output).__name__,
-            "assertions": _safe_value(c.assertions),
-            "scores": _safe_value(c.scores),
-            "labels": _safe_value(c.labels),
-            "task_duration_ms": round(c.task_duration * 1000, 1) if c.task_duration else None,
-        })
+        cases.append(
+            {
+                "name": c.name,
+                "inputs": _safe_value(c.inputs),
+                "output_type": type(c.output).__name__,
+                "assertions": _safe_value(c.assertions),
+                "scores": _safe_value(c.scores),
+                "labels": _safe_value(c.labels),
+                "task_duration_ms": round(c.task_duration * 1000, 1) if c.task_duration else None,
+            }
+        )
     failures = []
     for f in report.failures:
         failures.append({"name": f.name, "error": f.error_message})

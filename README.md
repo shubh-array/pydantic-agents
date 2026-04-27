@@ -19,6 +19,11 @@ The current infrastructure consists of Cursor coding agents (local - CLI, IDE an
 - What are the discrepancies between cursor cli and cursor ide agents?
 - Does cursor administration support creating a private plugin marketplace such that agent components (skills, prompts, mcps, etc.) can be shared across the engineering team?
 
+
+### Infra
+
+- Which evaluation platform gives the most value for money? Logfire, Braintrust, Azure App Insights/Foundry?
+
 ### Pydantic AI
 
 - Does Pydantic AI SDK library expose low-level features such that we can build task-specific agent harness vs general purpose agent harness?
@@ -62,3 +67,15 @@ The current infrastructure consists of Cursor coding agents (local - CLI, IDE an
 
 
 
+
+##PBA Agent Fleet — Phase 1 Implementation Summary
+
+### What's Implemented
+
+- Voice source-of-truth: structured YAML spec (8 rules + HR domain definition) drives all prompts
+- Deterministic prompt renderer: YAML → markdown, byte-identical re-renders
+- Skill authoring system: customer-facing skills under pba-agent/skills/<category>/<id>/SKILL.md, inlined into prompts at render time
+- First skill: skill-ai-disclosure-external (legal AI-disclosure rule for SMS/email), authored + evaluated end-to-end via - create-agent-skill harness, gated by promotion thresholds (100% candidate vs 69% baseline)
+- HR agent: live, answers HR questions on-voice
+- Eval pipeline: voice rules tested via LLMJudge rubrics on the HR agent (8 cases) + minimal HR domain dataset (2 cases), both wired into run_evals.py
+- Live verification: HR 100%, Voice 96% pass rate (one real never-fabricate regression surfaced — Phase 2 work)

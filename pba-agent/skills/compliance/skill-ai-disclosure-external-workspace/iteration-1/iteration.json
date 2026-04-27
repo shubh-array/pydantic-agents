@@ -1,0 +1,8 @@
+{
+  "skill_path": "/Users/sshukla/Desktop/src/pydantic-agents/pba-agent/skills/compliance/skill-ai-disclosure-external",
+  "evals_path": "/Users/sshukla/Desktop/src/pydantic-agents/pba-agent/skills/compliance/skill-ai-disclosure-external/evals/evals.json",
+  "baseline_type": "without_skill",
+  "runs_per_configuration": 1,
+  "iteration": 1,
+  "notes": "Initial iteration — candidate skill vs no-skill baseline. Three cases exercise the AI-disclosure rule on (1) a first-touch SMS, (2) a first-touch email with footer, and (3) a follow-up SMS where the disclosure should NOT be repeated. Model: gpt-5.3-codex via cursor adapter."
+}

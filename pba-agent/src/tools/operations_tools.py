@@ -52,8 +52,13 @@ def search_runbooks(query: str) -> str:
         query: Natural-language description of the issue or procedure needed.
     """
     known_queries = {
-        "high error rate", "latency spike", "payment", "503", "rollback",
-        "database", "connection pool",
+        "high error rate",
+        "latency spike",
+        "payment",
+        "503",
+        "rollback",
+        "database",
+        "connection pool",
     }
     matched = [kw for kw in known_queries if kw in query.lower()]
     if not matched:

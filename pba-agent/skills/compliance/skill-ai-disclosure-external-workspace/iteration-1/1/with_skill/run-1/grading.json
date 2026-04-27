@@ -1,0 +1,53 @@
+{
+  "expectations": [
+    {
+      "assertion_id": "sms-file-exists",
+      "text": "A file named `sms.txt` exists in the run's outputs directory.",
+      "passed": true,
+      "evidence": "File exists at /Users/sshukla/Desktop/src/pydantic-agents/pba-agent/skills/compliance/skill-ai-disclosure-external-workspace/iteration-1/1/with_skill/run-1/outputs/sms.txt; size=249 chars",
+      "critical": true
+    },
+    {
+      "assertion_id": "sms-discloses-ai",
+      "text": "`sms.txt` contains an explicit AI disclosure phrase (e.g. 'automated', 'AI', 'AI-powered') in the first sentence the recipient would read.",
+      "passed": true,
+      "evidence": "First sentence: Hi Jordan \u2014 this is an automated screening assistant for Acme Corp, powered by Array HQ",
+      "critical": true
+    },
+    {
+      "assertion_id": "sms-names-hiring-company",
+      "text": "`sms.txt` names the hiring company 'Acme Corp'.",
+      "passed": true,
+      "evidence": "'Acme Corp' present: True",
+      "critical": true
+    },
+    {
+      "assertion_id": "sms-includes-stop-opt-out",
+      "text": "`sms.txt` includes the SMS opt-out instruction (e.g. 'Reply STOP', 'STOP to opt out').",
+      "passed": true,
+      "evidence": "STOP opt-out present: True",
+      "critical": true
+    },
+    {
+      "assertion_id": "sms-uses-first-name",
+      "text": "`sms.txt` addresses the recipient by first name 'Jordan'.",
+      "passed": true,
+      "evidence": "Greeting includes 'Jordan': True",
+      "critical": false
+    }
+  ],
+  "summary": {
+    "passed": 5,
+    "failed": 0,
+    "total": 5,
+    "pass_rate": 1.0
+  },
+  "execution_metrics": {
+    "total_tool_calls": 0,
+    "errors_encountered": 0
+  },
+  "timing": {
+    "executor_duration_seconds": 7.975,
+    "total_duration_seconds": 7.975
+  }
+}

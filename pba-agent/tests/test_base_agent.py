@@ -33,10 +33,10 @@ def test_base_agent_captures_messages():
 def test_compose_prompt_no_domain():
     prompt = compose_prompt()
     assert "<domain_extension>" in prompt
-    assert "<!-- assembled at runtime" in prompt
+    assert "<!-- domain-extension:begin -->" in prompt
 
 
 def test_compose_prompt_with_domain():
     prompt = compose_prompt("Custom domain content here")
     assert "Custom domain content here" in prompt
-    assert "<!-- assembled at runtime" not in prompt
+    assert "<!-- domain-extension:begin -->" not in prompt
