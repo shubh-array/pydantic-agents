@@ -3,7 +3,7 @@ from __future__ import annotations
 from pydantic_ai import capture_run_messages
 from pydantic_ai.models.test import TestModel
 
-from base_agent import compose_prompt, PROMPTS_DIR
+from base_agent import PROMPTS_DIR
 from deps import AgentDeps
 from operations_agent import create_operations_agent
 
@@ -22,11 +22,10 @@ def test_operations_agent_run():
     assert len(result.output) > 0
 
 
-def test_operations_prompt_contains_domain():
-    domain_prompt = (PROMPTS_DIR / "operations-agent-prompt.md").read_text()
-    composed = compose_prompt(domain_prompt)
-    assert "<domain_extension>" in composed
-    assert "operations" in composed.lower() or "incident" in composed.lower()
+def test_operations_generated_prompt_contains_domain():
+    rendered = (PROMPTS_DIR / "_generated" / "operations.md").read_text()
+    assert "<domain_extension>" in rendered
+    assert "operations" in rendered.lower() or "incident" in rendered.lower()
 
 
 def test_operations_agent_captures_messages():

@@ -28,7 +28,7 @@ from pydantic_ai.models.test import TestModel
 from pydantic_evals import Case, Dataset
 from pydantic_evals.evaluators import IsInstance
 
-from base_agent import PROMPTS_DIR, _build_agent, compose_prompt, create_base_agent
+from base_agent import PROMPTS_DIR, _build_agent, create_base_agent
 from deps import AgentDeps
 from evaluators import ALL_CUSTOM_EVALUATORS
 from evaluators.base_evaluators import NoPIIEcho
@@ -81,8 +81,7 @@ def demo_operations_eval() -> None:
     """Run a structured-output eval against the operations agent with TestModel."""
     print("\n=== Demo 2: Operations Agent Eval (structured output) ===\n")
 
-    domain_prompt = (PROMPTS_DIR / "operations-agent-prompt.md").read_text()
-    instructions = compose_prompt(domain_prompt)
+    instructions = (PROMPTS_DIR / "_generated" / "operations.md").read_text()
     # Tools omitted here: TestModel generates synthetic tool arguments that
     # trigger ModelRetry in stub tools.  Tool behavior is covered by unit tests.
     agent = _build_agent(

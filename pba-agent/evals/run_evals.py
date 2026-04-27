@@ -73,8 +73,7 @@ def _make_marketing_agent(*, include_tools: bool = True, model: str | None = Non
 
 
 def _make_operations_agent(*, include_tools: bool = True, model: str | None = None):
-    domain_prompt = (PROMPTS_DIR / "operations-agent-prompt.md").read_text()
-    instructions = compose_prompt(domain_prompt)
+    instructions = (PROMPTS_DIR / "_generated" / "operations.md").read_text()
     return _build_agent(
         "operations-agent.yaml",
         instructions,
