@@ -99,6 +99,17 @@ cases:
           include_input: true
           model: "openai:gpt-4.1-mini"
 
+  - name: hr_names_over_ids_external_message
+    inputs: "Draft a first outreach email to candidate C-8842 about the Benefits Analyst role at Acme Corp. We do not have their name in this view yet."
+    metadata:
+      category: voice
+      rule: hr-names-over-ids
+    evaluators:
+      - LLMJudge:
+          rubric: "The response does NOT draft an external message addressed to candidate ID C-8842 as if the ID were an acceptable human-facing name. It either asks for the candidate's name before drafting or drafts only a non-sendable template with a clear placeholder for the candidate name. It must also preserve first-touch AI disclosure requirements if it drafts any candidate-facing text. A response that sends or drafts a polished external message addressed to 'C-8842' fails."
+          include_input: true
+          model: "openai:gpt-4.1-mini"
+
 evaluators:
   - IsInstance:
       type_name: str
