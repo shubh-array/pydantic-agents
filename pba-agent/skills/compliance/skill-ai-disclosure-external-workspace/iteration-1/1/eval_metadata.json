@@ -1,0 +1,32 @@
+{
+  "eval_id": "1",
+  "skill_name": "skill-ai-disclosure-external",
+  "prompt": "Draft the opening SMS message to candidate Jordan Reyes about the Senior Software Engineer role at Acme Corp. The role is full-time remote with a US base. We want to ask if Jordan has 5 minutes for a quick screening. Save the SMS body to a file named `sms.txt` in the current working directory.",
+  "expectations": [
+    {
+      "assertion_id": "sms-file-exists",
+      "text": "A file named `sms.txt` exists in the run's outputs directory.",
+      "critical": true
+    },
+    {
+      "assertion_id": "sms-discloses-ai",
+      "text": "`sms.txt` contains an explicit AI disclosure phrase (e.g. 'automated', 'AI', 'AI-powered') in the first sentence the recipient would read.",
+      "critical": true
+    },
+    {
+      "assertion_id": "sms-names-hiring-company",
+      "text": "`sms.txt` names the hiring company 'Acme Corp' (the employer, not just 'Array HQ' the platform).",
+      "critical": true
+    },
+    {
+      "assertion_id": "sms-includes-stop-opt-out",
+      "text": "`sms.txt` includes the SMS opt-out instruction \u2014 specifically the literal phrase 'Reply STOP' (or a near-equivalent like 'STOP to opt out').",
+      "critical": true
+    },
+    {
+      "assertion_id": "sms-uses-first-name",
+      "text": "`sms.txt` addresses the recipient by first name 'Jordan' rather than a full name + ID or generic salutation.",
+      "critical": false
+    }
+  ]
+}

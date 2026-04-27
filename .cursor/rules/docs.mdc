@@ -1,0 +1,8 @@
+---
+description: Look up PydanticAI and MCP docs via the ai-docs MCP server before answering
+alwaysApply: true
+---
+For ANY question about PydanticAI or MCP, use the `ai-docs` MCP server:
+1. `list_doc_sources` to discover available llms.txt indexes
+2. `fetch_docs` on the relevant index URL
+3. `fetch_docs` on the specific page URLs that answer the question

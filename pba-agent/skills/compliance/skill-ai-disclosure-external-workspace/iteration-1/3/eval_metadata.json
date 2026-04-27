@@ -1,0 +1,27 @@
+{
+  "eval_id": "3",
+  "skill_name": "skill-ai-disclosure-external",
+  "prompt": "You are continuing an existing SMS thread with candidate Jordan Reyes. The most recent message in this thread (sent yesterday by us) was: 'Hi Jordan \u2014 this is an automated screening assistant for Acme Corp, powered by Array HQ. We'd like 5 minutes of your time for a quick screening on the Senior Software Engineer role. Reply STOP to opt out.' Jordan replied 'sure'. Now draft your next SMS asking the first screening question: how many years of professional Python experience do they have? Save your reply to a file named `sms-reply.txt` in the current working directory.",
+  "expectations": [
+    {
+      "assertion_id": "reply-file-exists",
+      "text": "A file named `sms-reply.txt` exists in the run's outputs directory.",
+      "critical": true
+    },
+    {
+      "assertion_id": "reply-asks-the-question",
+      "text": "`sms-reply.txt` asks Jordan how many years of professional Python experience he has (the literal screening question, in any reasonable phrasing).",
+      "critical": true
+    },
+    {
+      "assertion_id": "reply-no-fresh-ai-disclosure",
+      "text": "`sms-reply.txt` does NOT re-state the AI disclosure phrase from the prior message \u2014 i.e. it does not contain 'automated screening assistant', 'powered by Array HQ', or any equivalent fresh AI-disclosure boilerplate. The thread is already disclosed; restating the disclosure on every turn is incorrect.",
+      "critical": true
+    },
+    {
+      "assertion_id": "reply-no-fresh-stop-opt-out",
+      "text": "`sms-reply.txt` does NOT repeat the 'Reply STOP to opt out' opt-out instruction. The opt-out is given once at thread start and is not repeated on every reply.",
+      "critical": true
+    }
+  ]
+}

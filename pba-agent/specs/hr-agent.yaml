@@ -1,0 +1,5 @@
+model: openai:gpt-4.1-mini
+name: pba-hr-agent
+model_settings:
+  temperature: 0.3
+  max_tokens: 2048

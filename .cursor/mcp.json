@@ -1,0 +1,14 @@
+{
+    "mcpServers": {
+      "ai-docs": {
+        "command": "uvx",
+        "args": [
+          "--from", "mcpdoc", "mcpdoc",
+          "--urls",
+          "PydanticAI:https://pydantic.dev/docs/ai/llms.txt",
+          "MCP:https://modelcontextprotocol.io/llms.txt",
+          "--transport", "stdio"
+        ]
+      }
+    }
+  }

@@ -1,0 +1,46 @@
+{
+  "expectations": [
+    {
+      "assertion_id": "reply-file-exists",
+      "text": "A file named `sms-reply.txt` exists.",
+      "passed": true,
+      "evidence": "File exists; size=78",
+      "critical": true
+    },
+    {
+      "assertion_id": "reply-asks-the-question",
+      "text": "Asks how many years of professional Python experience.",
+      "passed": true,
+      "evidence": "Body: 'Thanks, Jordan. How many years of professional Python experience do you have?\\n'",
+      "critical": true
+    },
+    {
+      "assertion_id": "reply-no-fresh-ai-disclosure",
+      "text": "Does NOT re-state the AI disclosure phrase from the prior message.",
+      "passed": true,
+      "evidence": "fresh_disclosure_present=False",
+      "critical": true
+    },
+    {
+      "assertion_id": "reply-no-fresh-stop-opt-out",
+      "text": "Does NOT repeat 'Reply STOP' opt-out.",
+      "passed": true,
+      "evidence": "fresh_stop_present=False",
+      "critical": true
+    }
+  ],
+  "summary": {
+    "passed": 4,
+    "failed": 0,
+    "total": 4,
+    "pass_rate": 1.0
+  },
+  "execution_metrics": {
+    "total_tool_calls": 0,
+    "errors_encountered": 0
+  },
+  "timing": {
+    "executor_duration_seconds": 5.994,
+    "total_duration_seconds": 5.994
+  }
+}

@@ -1,7 +1,7 @@
 {
   "cli": {
     "binary": "agent",
-    "flags": ["--print", "--force", "--output-format=stream-json"],
+    "flags": ["--print", "--force", "--output-format=stream-json", "--model", "gpt-5.3-codex"],
     "timeout_default_s": 600
   },
   "skills": {

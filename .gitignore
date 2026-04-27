@@ -14,3 +14,9 @@ __pycache__/
 .DS_Store
 
 tmp/skill-creator/
+
+pba-agent/.env
+pba-agent/.jaeger/
+pba-agent/evals/runs/
+
+.array/analytics.jsonl
