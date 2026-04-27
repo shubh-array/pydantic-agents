@@ -1,7 +1,7 @@
 # Operations Agent — Domain Extension
 
 **Version:** 1.0
-**Base prompt:** `base_agent_prompt.md` v1.0
+**Base prompt:** `base-system-prompt.md` v1.0
 **Role:** Appended inside the base prompt's `<domain_extension>` block at runtime.
 **Primary workloads:** Incident response, deploys, on-call triage, runbook execution, infra hygiene.
 

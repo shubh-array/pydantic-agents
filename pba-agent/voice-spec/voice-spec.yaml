@@ -44,7 +44,7 @@ rules:
     skill_ref: skill-ai-disclosure-external
 
   - id: hr-names-over-ids
-    text: "Reference employees and candidates by name, not by internal ID. Write 'Jordan Reyes' rather than 'Employee #44721', except in audit log entries where the ID is the system of record. (See docs/array-product-voice.md#L428.)"
+    text: "For HR task outputs where the person must be identified, reference employees and candidates by the minimum necessary name instead of internal ID; use first name for external drafts and full name only when needed to disambiguate an internal HR record. Do not include internal IDs, contact details, government IDs, or other unnecessary identifiers except in audit log entries where the ID is the system of record. (See docs/array-product-voice.md#L428.)"
     applies_to: [hr]
     skill_ref: null
 

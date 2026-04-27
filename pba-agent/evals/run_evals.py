@@ -53,6 +53,7 @@ from pydantic_evals.evaluators import Evaluator, LLMJudge
 from base_agent import PROMPTS_DIR, _build_agent, create_base_agent
 from deps import AgentDeps
 from evaluators import ALL_CUSTOM_EVALUATORS
+from evaluators.operations_evaluators import IncidentFormatCheck
 from models import Failed, IncidentStatus
 from recording import load_baseline, save_run
 from tools.operations_tools import check_deploy_status, query_monitoring, search_runbooks
@@ -63,7 +64,8 @@ OPERATIONS_TOOLS = [query_monitoring, check_deploy_status, search_runbooks]
 
 CI_SMOKE_NOTICE = (
     "NOTE: CI smoke mode uses TestModel. Results validate dataset/evaluator wiring only; "
-    "they do not measure agent answer quality. LLMJudge evaluators are skipped. "
+    "they do not measure agent answer quality. LLMJudge and structured-content "
+    "evaluators are skipped. "
     "Run with --live for behavioral evals.\n"
 )
 
@@ -91,15 +93,28 @@ def _without_llm_judges(evaluators: list[Evaluator]) -> list[Evaluator]:
     return [evaluator for evaluator in evaluators if not isinstance(evaluator, LLMJudge)]
 
 
+def _without_smoke_incompatible_evaluators(evaluators: list[Evaluator]) -> list[Evaluator]:
+    return [
+        evaluator
+        for evaluator in evaluators
+        if not isinstance(evaluator, (LLMJudge, IncidentFormatCheck))
+    ]
+
+
 def _prepare_dataset_for_mode(
     dataset: Dataset[str, Any, Any], *, use_test_model: bool
 ) -> Dataset[str, Any, Any]:
     if not use_test_model:
         return dataset
-    dataset.evaluators = _without_llm_judges(dataset.evaluators)
+    dataset.evaluators = _without_smoke_incompatible_evaluators(dataset.evaluators)
     for case in dataset.cases:
-        case.evaluators = _without_llm_judges(case.evaluators)
+        case.evaluators = _without_smoke_incompatible_evaluators(case.evaluators)
     return dataset
+
+
+def _report_has_failed_assertions(report: Any) -> bool:
+    averages = report.averages()
+    return bool(averages and averages.assertions is not None and averages.assertions < 1.0)
 
 
 def _make_operations_agent(*, include_tools: bool = True, model: str | None = None):
@@ -250,6 +265,8 @@ def main() -> None:
             all_passed = False
             for f in report.failures:
                 print(f"  FAILURE: {f.name} — {f.error_message}")
+        if _report_has_failed_assertions(report):
+            all_passed = False
 
     # Save results in live mode
     if is_live:

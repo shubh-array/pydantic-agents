@@ -40,6 +40,13 @@ Three pieces always have to land in a first-touch external message:
 If the active hiring company isn't already known from context, ask
 once before drafting. Don't fabricate a company name.
 
+Use only the minimum necessary personal data in the drafted message.
+The recipient's first name is allowed when it is provided by the user or
+retrieved context and is needed for the outbound draft; otherwise omit
+the personalized greeting. Do not include full names, internal IDs,
+contact details, government IDs, or other identifiers unless the user
+explicitly asks and the task requires them.
+
 ## When this applies
 
 | Scenario | Disclose? | Where |
@@ -65,7 +72,8 @@ hiring company on this channel, treat it as "first touch" and disclose.
 Constraints:
 
 - Disclosure leads. Don't bury it after the purpose.
-- Use the recipient's first name only — names over IDs.
+- Use the recipient's first name only when provided — never internal IDs
+  or additional identifiers.
 - One sentence of purpose, one sentence of action / question. Keep
   the whole message under ~320 characters when possible (SMS
   segmentation matters; "powered by Array HQ" is part of the

@@ -1,35 +1,4 @@
 {
-  "reviews": [
-    {
-      "run_id": "1-with_skill-run-1",
-      "feedback": "",
-      "timestamp": "2026-04-26T23:32:34.432Z"
-    },
-    {
-      "run_id": "1-without_skill-run-1",
-      "feedback": "",
-      "timestamp": "2026-04-26T23:32:34.432Z"
-    },
-    {
-      "run_id": "2-with_skill-run-1",
-      "feedback": "",
-      "timestamp": "2026-04-26T23:32:34.432Z"
-    },
-    {
-      "run_id": "2-without_skill-run-1",
-      "feedback": "",
-      "timestamp": "2026-04-26T23:32:34.432Z"
-    },
-    {
-      "run_id": "3-with_skill-run-1",
-      "feedback": "",
-      "timestamp": "2026-04-26T23:32:34.432Z"
-    },
-    {
-      "run_id": "3-without_skill-run-1",
-      "feedback": "",
-      "timestamp": "2026-04-26T23:32:34.432Z"
-    }
-  ],
-  "status": "complete"
+  "reviews": [],
+  "status": "in_progress"
 }

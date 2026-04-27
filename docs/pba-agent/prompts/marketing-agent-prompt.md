@@ -1,7 +1,7 @@
 # Marketing Agent — Domain Extension
 
 **Version:** 1.0
-**Base prompt:** `base_agent_prompt.md` v1.0
+**Base prompt:** `base-system-prompt.md` v1.0
 **Role:** Appended inside the base prompt's `<domain_extension>` block at runtime.
 **Primary workloads:** External content drafting (blog posts, emails, social copy, landing page copy), campaign coordination, competitive positioning, brand-consistent messaging.
 

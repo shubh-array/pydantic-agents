@@ -9,6 +9,7 @@ from pydantic_evals.evaluators import LLMJudge
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "evals"))
 
 from evaluators.common import NoSycophancy  # noqa: E402
+from evaluators.operations_evaluators import IncidentFormatCheck  # noqa: E402
 from run_evals import (  # noqa: E402
     _mode_label,
     _parse_args,
@@ -26,7 +27,7 @@ def test_ci_mode_is_labeled_as_smoke_only(capsys):
     assert _mode_label(use_test_model=True) == "TestModel smoke evals (CI)"
     assert "validate dataset/evaluator wiring only" in output
     assert "do not measure agent answer quality" in output
-    assert "LLMJudge evaluators are skipped" in output
+    assert "structured-content evaluators are skipped" in output
     assert "Smoke evals complete: wiring only, not behavioral quality" in output
 
 
@@ -41,17 +42,21 @@ def test_live_mode_is_labeled_as_behavioral(capsys):
     assert "Live behavioral evals complete" in output
 
 
-def test_ci_mode_removes_llm_judge_evaluators():
+def test_ci_mode_removes_smoke_incompatible_evaluators():
     dataset = Dataset(
         name="smoke",
         cases=[
             Case(
                 name="case",
                 inputs="hello",
-                evaluators=[NoSycophancy(), LLMJudge(rubric="Response is useful")],
+                evaluators=[
+                    NoSycophancy(),
+                    IncidentFormatCheck(),
+                    LLMJudge(rubric="Response is useful"),
+                ],
             )
         ],
-        evaluators=[LLMJudge(rubric="Response is safe")],
+        evaluators=[IncidentFormatCheck(), LLMJudge(rubric="Response is safe")],
     )
 
     prepared = _prepare_dataset_for_mode(dataset, use_test_model=True)
