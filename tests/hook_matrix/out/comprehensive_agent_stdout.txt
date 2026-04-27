@@ -1,0 +1,13 @@
+- **Allowed (executed):**
+  1. `echo COMPREHENSIVE_HOOK_SIM_START` (success)
+  7. `git push origin main` (executed, but failed with non-fast-forward/fetch-first rejection from Git remote)
+  8. `echo COMPREHENSIVE_HOOK_SIM_END` (success)
+
+- **Blocked by hook policy:**
+  2. `rm -rf /tmp/cursor_hook_sim_direct_rf`
+  3. `bash -lc 'rm -rf /tmp/cursor_hook_sim_nested_rf'`
+  4. `env FOO=bar rm -rf /tmp/cursor_hook_sim_env_rf`
+  5. `sudo -n rm -rf /tmp/cursor_hook_sim_sudo_rf`
+  6. `echo "unterminated` (blocked as disallowed command by policy)
+
+Overall: 5 blocked, 3 allowed/executed.
