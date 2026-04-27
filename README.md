@@ -79,3 +79,7 @@ The current infrastructure consists of Cursor coding agents (local - CLI, IDE an
 - HR agent: live, answers HR questions on-voice
 - Eval pipeline: voice rules tested via LLMJudge rubrics on the HR agent (8 cases) + minimal HR domain dataset (2 cases), both wired into run_evals.py
 - Live verification: HR 100%, Voice 96% pass rate (one real never-fabricate regression surfaced — Phase 2 work)
+
+Navigation — Step-by-Step
+
+Step 1 — Prompt markers
