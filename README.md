@@ -53,6 +53,7 @@ deployed in Azure containers.
   debugging agent trajectories?
 - Does Pydantic have native support for orchestrating agents, especially
   long-running agents?
+- Support for prompt caching?
 
 
 ### Agentic Product Development
@@ -133,3 +134,44 @@ deployed in Azure containers.
   into `run_evals.py`.
 - Live verification: HR 100% and Voice 96% pass rate, with one real
   never-fabricate regression surfaced for Phase 2 work.
+
+## End-to-End Domain Agent Workflow
+
+```mermaid
+flowchart TD
+    A[Define product voice and domain rules<br/>voice-spec.yaml] --> B[Author reusable PBA skills<br/>skills/category/skill-id/SKILL.md]
+    B --> C[Render generated prompts<br/>scripts/render_prompts.py]
+    A --> C
+    C --> D[Generated domain prompt<br/>prompts/_generated/hr.md]
+    D --> E[Create domain agent factory<br/>src/hr_agent.py]
+    E --> F[Build Pydantic AI agent<br/>base_agent._build_agent]
+    F --> G[Run agent with AgentDeps<br/>user, company, domain context]
+    G --> H[Evaluate agent behavior<br/>evals/run_evals.py]
+    H --> I[Load YAML datasets and evaluators<br/>base, HR, voice, operations]
+    I --> J{Eval mode}
+    J -->|CI smoke| K[TestModel validates wiring<br/>LLMJudge skipped]
+    J -->|Live| L[Real model evaluates behavior<br/>LLMJudge enabled]
+    L --> M[Trace Pydantic AI runs<br/>Logfire when LOGFIRE_TOKEN is set]
+    K --> N[Print eval report]
+    L --> O[Persist run artifacts<br/>evals/runs/timestamp]
+    M --> O
+```
+
+1. Define shared product-voice rules and domain-specific extensions in
+   `pba-agent/voice-spec/voice-spec.yaml`.
+2. Add any reusable behavior as a PBA skill under
+   `pba-agent/skills/<category>/<skill-id>/SKILL.md`, then reference it from
+   the domain's `skills_enabled` list.
+3. Run `uv run python pba-agent/scripts/render_prompts.py` to compose the base
+   prompt, applicable voice rules, domain extension text, and enabled skills
+   into `pba-agent/prompts/_generated/<domain>.md`.
+4. Create a domain factory such as `create_hr_agent()` that reads the generated
+   prompt and calls the shared `_build_agent()` helper with the domain's
+   `AgentSpec`.
+5. `_build_agent()` constructs the Pydantic AI agent, attaches model settings,
+   tools or output types when needed, and injects runtime context from
+   `AgentDeps`.
+6. Run evals through `pba-agent/evals/run_evals.py`. Default mode uses
+   `TestModel` for deterministic wiring checks; `--live` runs the real model,
+   enables LLM judges, saves reports under `pba-agent/evals/runs/`, and sends
+   traces to Logfire when `LOGFIRE_TOKEN` is configured.
