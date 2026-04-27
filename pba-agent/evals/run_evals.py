@@ -31,6 +31,9 @@ Usage (from pba-agent/ directory):
 
     # Live mode, compare against a specific baseline
     env $(cat .env) uv run python evals/run_evals.py --live --baseline 2026-04-24T20-30-00
+
+    # Live mode, run each case 3 times to check stability
+    env $(cat .env) uv run python evals/run_evals.py --live --repeat 3
 """
 
 from __future__ import annotations
@@ -69,8 +72,10 @@ def _mode_label(use_test_model: bool) -> str:
     return "TestModel smoke evals (CI)" if use_test_model else "Live model behavioral evals"
 
 
-def _print_run_header(use_test_model: bool) -> None:
+def _print_run_header(use_test_model: bool, repeat_count: int = 1) -> None:
     print(f"=== PBA Evaluation Pipeline — {_mode_label(use_test_model)} ===\n")
+    if repeat_count > 1:
+        print(f"Repeat: {repeat_count} runs per case\n")
     if use_test_model:
         print(CI_SMOKE_NOTICE)
 
@@ -149,21 +154,32 @@ def _configure_logfire_for_evals() -> None:
     print("Logfire: tracing enabled (traces will appear in Logfire cloud)\n")
 
 
-def _parse_args() -> tuple[bool, str | None]:
-    """Parse CLI flags. Returns (use_test_model, baseline_timestamp)."""
-    use_test_model = "--live" not in sys.argv
+def _parse_args(argv: list[str] | None = None) -> tuple[bool, str | None, int]:
+    """Parse CLI flags. Returns (use_test_model, baseline_timestamp, repeat_count)."""
+    args = sys.argv if argv is None else argv
+    use_test_model = "--live" not in args
     baseline_ts = None
-    for i, arg in enumerate(sys.argv):
-        if arg == "--baseline" and i + 1 < len(sys.argv):
-            baseline_ts = sys.argv[i + 1]
-    return use_test_model, baseline_ts
+    repeat_count = 1
+    for i, arg in enumerate(args):
+        if arg == "--baseline" and i + 1 < len(args):
+            baseline_ts = args[i + 1]
+        if arg == "--repeat":
+            if i + 1 >= len(args):
+                raise SystemExit("--repeat requires a positive integer")
+            try:
+                repeat_count = int(args[i + 1])
+            except ValueError as exc:
+                raise SystemExit("--repeat requires a positive integer") from exc
+            if repeat_count < 1:
+                raise SystemExit("--repeat requires a positive integer")
+    return use_test_model, baseline_ts, repeat_count
 
 
 def main() -> None:
-    use_test_model, baseline_ts = _parse_args()
+    use_test_model, baseline_ts, repeat_count = _parse_args()
     is_live = not use_test_model
     mode = _mode_label(use_test_model)
-    _print_run_header(use_test_model)
+    _print_run_header(use_test_model, repeat_count=repeat_count)
 
     if is_live:
         _configure_logfire_for_evals()
@@ -224,7 +240,7 @@ def main() -> None:
         )
         ds = _prepare_dataset_for_mode(ds, use_test_model=use_test_model)
         task = _make_task(agents[name], deps, use_test_model)
-        report = ds.evaluate_sync(task)
+        report = ds.evaluate_sync(task, repeat=repeat_count)
         reports[name] = report
 
         baseline_report = baselines.get(name) if baselines else None

@@ -11,6 +11,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "evals"))
 from evaluators.common import NoSycophancy  # noqa: E402
 from run_evals import (  # noqa: E402
     _mode_label,
+    _parse_args,
     _prepare_dataset_for_mode,
     _print_run_footer,
     _print_run_header,
@@ -30,12 +31,13 @@ def test_ci_mode_is_labeled_as_smoke_only(capsys):
 
 
 def test_live_mode_is_labeled_as_behavioral(capsys):
-    _print_run_header(use_test_model=False)
+    _print_run_header(use_test_model=False, repeat_count=3)
     _print_run_footer(use_test_model=False)
 
     output = capsys.readouterr().out
     assert _mode_label(use_test_model=False) == "Live model behavioral evals"
     assert "CI smoke mode uses TestModel" not in output
+    assert "Repeat: 3 runs per case" in output
     assert "Live behavioral evals complete" in output
 
 
@@ -56,3 +58,22 @@ def test_ci_mode_removes_llm_judge_evaluators():
 
     assert prepared.evaluators == []
     assert prepared.cases[0].evaluators == [NoSycophancy()]
+
+
+def test_parse_args_defaults_to_smoke_repeat_one():
+    assert _parse_args(["evals/run_evals.py"]) == (True, None, 1)
+
+
+def test_parse_args_accepts_live_baseline_and_repeat():
+    assert _parse_args(
+        ["evals/run_evals.py", "--live", "--baseline", "2026-04-24T20-30-00", "--repeat", "3"]
+    ) == (False, "2026-04-24T20-30-00", 3)
+
+
+def test_parse_args_rejects_invalid_repeat():
+    try:
+        _parse_args(["evals/run_evals.py", "--repeat", "0"])
+    except SystemExit as exc:
+        assert str(exc) == "--repeat requires a positive integer"
+    else:
+        raise AssertionError("--repeat 0 should fail")
